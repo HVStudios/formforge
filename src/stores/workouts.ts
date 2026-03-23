@@ -148,11 +148,11 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     fsWriteActive(activeWorkout.value)
   }
 
-  function startEmptyWorkout() {
+  function startEmptyWorkout(name = 'Free Workout') {
     activeWorkout.value = {
       id: nanoid(),
       planId: null,
-      planName: 'Free Workout',
+      planName: name,
       startedAt: new Date().toISOString(),
       completedAt: null,
       exercises: [],

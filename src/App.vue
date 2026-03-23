@@ -26,7 +26,11 @@ watch(
   () => authStore.user,
   async user => {
     if (user) {
-      await workoutsStore.loadFromFirestore(user.uid)
+      try {
+        await workoutsStore.loadFromFirestore(user.uid)
+      } catch (err) {
+        console.error('Firestore load failed, using local data:', err)
+      }
     } else {
       workoutsStore.clearData()
     }
