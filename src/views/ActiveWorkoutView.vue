@@ -1,0 +1,356 @@
+<template>
+  <main class="page">
+    <div v-if="!store.activeWorkout" class="page-inner">
+      <div class="empty-state">
+        <div class="empty-icon">⚡</div>
+        <p>No workout in progress.</p>
+        <RouterLink to="/plans" class="btn btn-primary mt-16">Browse Plans</RouterLink>
+      </div>
+    </div>
+
+    <div v-else class="page-inner">
+      <!-- Workout header -->
+      <div class="workout-header">
+        <div>
+          <p class="text-xs text-muted">In progress</p>
+          <h1 class="workout-title">{{ store.activeWorkout.planName }}</h1>
+        </div>
+        <div class="timer-badge">
+          <span class="timer-icon">⏱</span>
+          <span class="timer-label">{{ elapsedLabel }}</span>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: progressPct + '%' }" />
+        </div>
+        <span class="progress-text text-xs text-muted">{{ completedSets }} / {{ totalSets }} sets</span>
+      </div>
+
+      <!-- Exercise list -->
+      <div class="exercise-list">
+        <div
+          v-for="(ex, exIdx) in workout.exercises"
+          :key="ex.uid"
+          class="exercise-block card"
+          :class="{ 'ex-done': isExerciseDone(ex) }"
+        >
+          <!-- Exercise header (toggle collapse) -->
+          <button class="ex-toggle" @click="toggleExpand(exIdx)">
+            <div class="ex-toggle-left">
+              <span class="ex-status-icon">{{ isExerciseDone(ex) ? '✅' : '○' }}</span>
+              <div>
+                <div class="ex-name">{{ ex.exerciseName }}</div>
+                <div class="text-xs text-muted">{{ ex.sets.length }} sets · {{ completedCount(ex) }} done</div>
+              </div>
+            </div>
+            <span class="chevron" :class="{ open: expandedMap[exIdx] }">›</span>
+          </button>
+
+          <!-- Sets (collapsible) -->
+          <Transition name="expand">
+            <div v-if="expandedMap[exIdx]" class="sets-section">
+              <div class="divider" />
+              <div class="sets-header">
+                <span class="set-col-hdr">Set</span>
+                <span class="set-col-hdr">Weight (kg)</span>
+                <span class="set-col-hdr">Reps</span>
+                <span style="width:38px" />
+              </div>
+              <SetRow
+                v-for="(set, si) in ex.sets"
+                :key="si"
+                :set="set"
+                :number="si + 1"
+                @update:set="updateSet(exIdx, si, $event)"
+              />
+              <button class="btn btn-ghost btn-sm add-set-btn" @click="addSet(exIdx)">+ Set</button>
+            </div>
+          </Transition>
+        </div>
+      </div>
+
+      <!-- Add exercise -->
+      <button class="btn btn-outline btn-full mt-12" @click="showSelector = true">+ Add Exercise</button>
+
+      <!-- Finish / Discard -->
+      <div class="workout-footer">
+        <button class="btn btn-primary btn-full" @click="finish">Finish Workout</button>
+        <button class="btn btn-ghost btn-full" style="color: var(--danger)" @click="discard">Discard Workout</button>
+      </div>
+    </div>
+  </main>
+
+  <ExerciseSelector v-model="showSelector" @select="addExercise" />
+</template>
+
+<script setup lang="ts">
+import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useWorkoutsStore } from '../stores/workouts'
+import { formatDuration } from '../utils/format'
+import { nanoid } from '../utils/nanoid'
+import type { WorkoutLog, LoggedExercise, LoggedSet, Exercise } from '../types'
+import SetRow from '../components/SetRow.vue'
+import ExerciseSelector from '../components/ExerciseSelector.vue'
+
+const store = useWorkoutsStore()
+const router = useRouter()
+
+// Local mutable copy of the active workout
+const workout = reactive<WorkoutLog>(
+  JSON.parse(JSON.stringify(store.activeWorkout ?? {
+    id: '', planId: null, planName: '', startedAt: new Date().toISOString(),
+    completedAt: null, exercises: [], notes: ''
+  }))
+)
+
+// Keep store in sync
+watch(workout, (val) => store.updateActiveWorkout({ ...val }), { deep: true })
+
+// Sync if store changes externally (e.g. another tab)
+watch(() => store.activeWorkout, (val) => {
+  if (!val) return
+  // Only sync if IDs match (don't overwrite local edits)
+}, { deep: false })
+
+// Expand state
+const expandedMap = reactive<Record<number, boolean>>({})
+onMounted(() => {
+  // Expand first incomplete exercise by default
+  const firstIncomplete = workout.exercises.findIndex(ex => !isExerciseDone(ex))
+  if (firstIncomplete !== -1) expandedMap[firstIncomplete] = true
+  else if (workout.exercises.length > 0) expandedMap[0] = true
+})
+
+function toggleExpand(idx: number) {
+  expandedMap[idx] = !expandedMap[idx]
+}
+
+// Timer
+const now = ref(Date.now())
+let timer: ReturnType<typeof setInterval>
+onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => clearInterval(timer))
+
+const elapsedLabel = computed(() => {
+  if (!store.activeWorkout) return '00:00'
+  const secs = Math.floor((now.value - new Date(store.activeWorkout.startedAt).getTime()) / 1000)
+  return formatDuration(secs)
+})
+
+// Progress
+const totalSets = computed(() => workout.exercises.reduce((s, ex) => s + ex.sets.length, 0))
+const completedSets = computed(() => workout.exercises.reduce((s, ex) => s + ex.sets.filter(set => set.completed).length, 0))
+const progressPct = computed(() => totalSets.value === 0 ? 0 : Math.round((completedSets.value / totalSets.value) * 100))
+
+function isExerciseDone(ex: LoggedExercise) {
+  return ex.sets.length > 0 && ex.sets.every(s => s.completed)
+}
+
+function completedCount(ex: LoggedExercise) {
+  return ex.sets.filter(s => s.completed).length
+}
+
+// Mutations
+function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
+  workout.exercises[exIdx].sets[setIdx] = newSet
+  // Auto-expand next exercise when current is done
+  if (isExerciseDone(workout.exercises[exIdx])) {
+    const next = exIdx + 1
+    if (next < workout.exercises.length) {
+      expandedMap[exIdx] = false
+      expandedMap[next] = true
+    }
+  }
+}
+
+function addSet(exIdx: number) {
+  const ex = workout.exercises[exIdx]
+  const last = ex.sets.at(-1)
+  ex.sets.push({
+    reps: last?.reps ?? null,
+    weight: last?.weight ?? null,
+    completed: false,
+  })
+}
+
+const showSelector = ref(false)
+function addExercise(ex: Exercise) {
+  const logged: LoggedExercise = {
+    uid: nanoid(),
+    exerciseId: ex.id,
+    exerciseName: ex.name,
+    notes: '',
+    sets: [{ reps: null, weight: null, completed: false }],
+  }
+  workout.exercises.push(logged)
+  const idx = workout.exercises.length - 1
+  expandedMap[idx] = true
+}
+
+function finish() {
+  if (!confirm('Finish this workout and save it?')) return
+  store.finishWorkout()
+  router.replace({ name: 'history' })
+}
+
+function discard() {
+  if (!confirm('Discard this workout? All progress will be lost.')) return
+  store.discardWorkout()
+  router.replace({ name: 'home' })
+}
+</script>
+
+<style scoped>
+.workout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.workout-title {
+  font-size: 1.5rem;
+}
+
+.timer-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  flex-shrink: 0;
+}
+.timer-icon { font-size: 0.875rem; }
+.timer-label {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--primary);
+}
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.progress-text { flex-shrink: 0; }
+
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exercise-block {
+  padding: 0;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.exercise-block.ex-done {
+  border-color: var(--primary-dark);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.ex-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.ex-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ex-status-icon {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ex-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.chevron {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  transform: rotate(0deg);
+}
+.chevron.open { transform: rotate(90deg); }
+
+.sets-section {
+  padding: 0 16px 14px;
+}
+
+.sets-header {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0 6px;
+}
+.set-col-hdr {
+  flex: 1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.sets-header span:first-child { width: 22px; flex: none; text-align: center; }
+
+.add-set-btn {
+  color: var(--primary);
+  padding: 6px 4px;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.workout-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Expand transition */
+.expand-enter-active, .expand-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.expand-enter-from, .expand-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>
