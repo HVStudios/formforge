@@ -1,8 +1,8 @@
 <template>
   <div class="app-shell">
     <router-view v-slot="{ Component }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" />
+      <transition name="page">
+        <component :is="Component" :key="route.name" />
       </transition>
     </router-view>
     <BottomNav v-if="route.name !== 'auth'" />

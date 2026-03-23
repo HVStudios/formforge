@@ -229,6 +229,20 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
 .mb-16 { margin-bottom: 16px; }
 
 /* ─── Transitions ───────────────────────────────── */
+
+/* Page-level crossfade: leave goes absolute so the entering page is
+   immediately in the flex flow — no blank-screen gap.                */
+.page-enter-active { transition: opacity 0.15s ease; }
+.page-leave-active {
+  transition: opacity 0.15s ease;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.page-enter-from, .page-leave-to { opacity: 0; }
+
+/* Generic fade used by modals / sheets */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
