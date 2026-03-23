@@ -2,7 +2,7 @@
   <main class="page">
     <div class="page-inner">
       <div class="detail-header">
-        <button class="btn btn-ghost" @click="router.back()">← Back</button>
+        <button class="btn btn-ghost" @click="router.push({ name: 'history' })">← Back</button>
         <button class="btn btn-ghost" style="color: var(--danger)" @click="confirmDelete">Delete</button>
       </div>
 
@@ -95,7 +95,7 @@ const totalSets = computed(() =>
 function confirmDelete() {
   if (!confirm('Delete this workout log? This cannot be undone.')) return
   store.deleteLog(props.id)
-  router.back()
+  router.push({ name: 'history' })
 }
 </script>
 

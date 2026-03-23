@@ -1,10 +1,34 @@
 <template>
   <main class="page">
     <div v-if="!store.activeWorkout" class="page-inner">
-      <div class="empty-state">
-        <div class="empty-icon">⚡</div>
-        <p>No workout in progress.</p>
-        <RouterLink to="/plans" class="btn btn-primary mt-16">Browse Plans</RouterLink>
+      <div class="page-header"><h1>Workout</h1></div>
+
+      <!-- Start from a plan -->
+      <div class="start-section">
+        <h2 class="start-label">From a plan</h2>
+        <RouterLink to="/plans" class="btn btn-primary btn-full">Browse Plans</RouterLink>
+      </div>
+
+      <div class="divider-row"><span class="divider-text">or</span></div>
+
+      <!-- Quick log / custom activity -->
+      <div class="start-section">
+        <h2 class="start-label">Log any activity</h2>
+        <p class="text-sm text-muted mb-10">Bouldering, swimming, a run — anything you want to track.</p>
+        <input
+          v-model="customName"
+          class="input"
+          placeholder="Activity name (e.g. Bouldering)"
+          maxlength="60"
+          @keydown.enter="startCustom"
+        />
+        <button
+          class="btn btn-outline btn-full mt-10"
+          :disabled="!customName.trim()"
+          @click="startCustom"
+        >
+          Start Logging
+        </button>
       </div>
     </div>
 
@@ -99,6 +123,15 @@ import ExerciseSelector from '../components/ExerciseSelector.vue'
 const store = useWorkoutsStore()
 const router = useRouter()
 
+// ── Custom workout start ─────────────────────────────────────────────────────
+const customName = ref('')
+function startCustom() {
+  const name = customName.value.trim()
+  if (!name) return
+  store.startEmptyWorkout(name)
+  router.push({ name: 'workout' })
+}
+
 // Local mutable copy of the active workout
 const workout = reactive<WorkoutLog>(
   JSON.parse(JSON.stringify(store.activeWorkout ?? {
@@ -107,8 +140,10 @@ const workout = reactive<WorkoutLog>(
   }))
 )
 
-// Keep store in sync
-watch(workout, (val) => store.updateActiveWorkout({ ...val }), { deep: true })
+// Keep store in sync — only when there is a real active workout (not the placeholder)
+watch(workout, (val) => {
+  if (store.activeWorkout) store.updateActiveWorkout({ ...val })
+}, { deep: true })
 
 // Sync if store changes externally (e.g. another tab)
 watch(() => store.activeWorkout, (val) => {
@@ -205,6 +240,43 @@ function discard() {
 </script>
 
 <style scoped>
+/* ── Start screen ────────────────────────────────────────────────────────── */
+.start-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+.start-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.divider-row::before,
+.divider-row::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.mb-10 { margin-bottom: 10px; }
+.mt-10 { margin-top: 10px; }
+
+/* ── Workout header ──────────────────────────────────────────────────────── */
 .workout-header {
   display: flex;
   justify-content: space-between;
