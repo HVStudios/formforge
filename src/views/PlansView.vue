@@ -3,13 +3,19 @@
     <div class="page-inner">
       <div class="page-header">
         <h1>My Plans</h1>
-        <RouterLink to="/plans/new" class="btn btn-primary btn-sm">+ New</RouterLink>
+        <div class="header-actions">
+          <RouterLink to="/plans/generate" class="btn btn-outline btn-sm">✨ AI</RouterLink>
+          <RouterLink to="/plans/new" class="btn btn-primary btn-sm">+ New</RouterLink>
+        </div>
       </div>
 
       <div v-if="store.plans.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
         <p>No workout plans yet.</p>
-        <RouterLink to="/plans/new" class="btn btn-primary mt-16">Create a Plan</RouterLink>
+        <div class="empty-actions">
+          <RouterLink to="/plans/generate" class="btn btn-outline">✨ Generate with AI</RouterLink>
+          <RouterLink to="/plans/new" class="btn btn-primary">Create Manually</RouterLink>
+        </div>
       </div>
 
       <div v-else class="plans-list">
@@ -66,6 +72,20 @@ function confirmDelete(plan: WorkoutPlan) {
 </script>
 
 <style scoped>
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 260px;
+}
+
 .plans-list {
   display: flex;
   flex-direction: column;
