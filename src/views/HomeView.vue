@@ -7,10 +7,49 @@
           <p class="greeting text-muted text-sm">{{ greeting }}</p>
           <h1>FormForge</h1>
         </div>
-        <div class="logo-mark">
-          <img src="/icon.svg" alt="FormForge" />
+        <div class="header-actions">
+          <button class="account-btn" @click="showAccount = true" :title="authStore.email ?? 'Guest'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            <span v-if="authStore.isAnonymous" class="account-badge guest">Guest</span>
+          </button>
+          <div class="logo-mark">
+            <img src="/icon.svg" alt="FormForge" />
+          </div>
         </div>
       </div>
+
+      <!-- Account sheet -->
+      <Teleport to="body">
+        <Transition name="fade">
+          <div v-if="showAccount" class="overlay" @click="showAccount = false" />
+        </Transition>
+        <Transition name="slide-up">
+          <div v-if="showAccount" class="sheet account-sheet">
+            <div class="sheet-handle" />
+            <div class="sheet-header">
+              <h3>Account</h3>
+            </div>
+            <div class="sheet-body">
+              <div v-if="authStore.isAnonymous" class="anon-prompt card">
+                <p class="text-sm" style="margin-bottom:12px">You're using FormForge as a guest. Create an account to sync your data across devices.</p>
+                <RouterLink to="/auth" class="btn btn-primary btn-full" @click="showAccount = false">
+                  Create Account / Sign In
+                </RouterLink>
+              </div>
+              <div v-else class="account-info">
+                <p class="text-muted text-sm" style="margin-bottom:4px">Signed in as</p>
+                <p class="text-sm" style="font-weight:600; margin-bottom:16px">{{ authStore.email }}</p>
+              </div>
+              <button class="btn btn-danger btn-full" style="margin-top:8px" @click="handleSignOut">
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Active workout banner -->
       <Transition name="slide-up">
@@ -101,11 +140,21 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
+import { useAuthStore } from '../stores/auth'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
 import type { WorkoutPlan } from '../types'
 
-const store = useWorkoutsStore()
-const router = useRouter()
+const store     = useWorkoutsStore()
+const authStore = useAuthStore()
+const router    = useRouter()
+
+const showAccount = ref(false)
+
+async function handleSignOut() {
+  showAccount.value = false
+  await authStore.signOut()
+  router.replace({ name: 'auth' })
+}
 
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval>
@@ -144,11 +193,56 @@ function startPlan(plan: WorkoutPlan) {
 }
 .greeting { margin-bottom: 2px; }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .logo-mark img {
   width: 44px;
   height: 44px;
   border-radius: var(--radius);
 }
+
+.account-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.account-btn:hover { background: var(--card-hover); color: var(--text); }
+.account-btn svg { width: 18px; height: 18px; }
+
+.account-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+.account-badge.guest {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.account-sheet { z-index: 101; }
+
+.anon-prompt { background: var(--primary-dim); border-color: var(--primary); }
+
+.account-info { padding: 4px 0; }
 
 .active-banner {
   display: flex;
