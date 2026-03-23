@@ -129,7 +129,7 @@ function startCustom() {
   const name = customName.value.trim()
   if (!name) return
   store.startEmptyWorkout(name)
-  router.push({ name: 'workout' })
+  // Template reacts automatically when store.activeWorkout is set
 }
 
 // Local mutable copy of the active workout
