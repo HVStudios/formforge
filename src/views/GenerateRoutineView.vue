@@ -11,82 +11,150 @@
       <!-- ── FORM ─────────────────────────────────── -->
       <div v-if="step === 'form'" class="form-content">
 
-        <section class="form-section">
-          <h2 class="section-label">Goal</h2>
-          <div class="pill-grid pill-grid-2">
-            <button
-              v-for="g in GOALS" :key="g.value"
-              class="pill-btn" :class="{ active: prefs.goal === g.value }"
-              @click="prefs.goal = g.value"
-            >
-              <span class="pill-icon">{{ g.icon }}</span> {{ g.label }}
-            </button>
-          </div>
-        </section>
+        <!-- Mode toggle -->
+        <div class="mode-toggle">
+          <button
+            class="mode-btn"
+            :class="{ active: mode === 'gym' }"
+            @click="mode = 'gym'"
+          >💪 Gym Routine</button>
+          <button
+            class="mode-btn"
+            :class="{ active: mode === 'running' }"
+            @click="mode = 'running'"
+          >🏃 Running Plan</button>
+        </div>
 
-        <section class="form-section">
-          <h2 class="section-label">Days per week</h2>
-          <div class="pill-grid pill-grid-5">
-            <button
-              v-for="d in [2,3,4,5,6]" :key="d"
-              class="pill-btn" :class="{ active: prefs.daysPerWeek === d }"
-              @click="prefs.daysPerWeek = d"
-            >{{ d }}</button>
-          </div>
-        </section>
+        <!-- ── GYM FORM ── -->
+        <template v-if="mode === 'gym'">
+          <section class="form-section">
+            <h2 class="section-label">Goal</h2>
+            <div class="pill-grid pill-grid-2">
+              <button
+                v-for="g in GOALS" :key="g.value"
+                class="pill-btn" :class="{ active: gymPrefs.goal === g.value }"
+                @click="gymPrefs.goal = g.value"
+              >
+                <span class="pill-icon">{{ g.icon }}</span> {{ g.label }}
+              </button>
+            </div>
+          </section>
 
-        <section class="form-section">
-          <h2 class="section-label">Experience</h2>
-          <div class="pill-grid pill-grid-3">
-            <button
-              v-for="e in EXPERIENCES" :key="e.value"
-              class="pill-btn" :class="{ active: prefs.experience === e.value }"
-              @click="prefs.experience = e.value"
-            >{{ e.label }}</button>
-          </div>
-        </section>
+          <section class="form-section">
+            <h2 class="section-label">Days per week</h2>
+            <div class="pill-grid pill-grid-5">
+              <button
+                v-for="d in [2,3,4,5,6]" :key="d"
+                class="pill-btn" :class="{ active: gymPrefs.daysPerWeek === d }"
+                @click="gymPrefs.daysPerWeek = d"
+              >{{ d }}</button>
+            </div>
+          </section>
 
-        <section class="form-section">
-          <h2 class="section-label">Available equipment</h2>
-          <div class="pill-grid pill-grid-2">
-            <button
-              v-for="eq in EQUIPMENT_OPTIONS" :key="eq.value"
-              class="pill-btn" :class="{ active: prefs.equipment.includes(eq.value) }"
-              @click="toggleEquipment(eq.value)"
-            >
-              <span class="pill-icon">{{ eq.icon }}</span> {{ eq.label }}
-            </button>
-          </div>
-          <p v-if="prefs.equipment.length === 0" class="text-xs text-danger mt-8">
-            Select at least one
-          </p>
-        </section>
+          <section class="form-section">
+            <h2 class="section-label">Experience</h2>
+            <div class="pill-grid pill-grid-3">
+              <button
+                v-for="e in EXPERIENCES" :key="e.value"
+                class="pill-btn" :class="{ active: gymPrefs.experience === e.value }"
+                @click="gymPrefs.experience = e.value"
+              >{{ e.label }}</button>
+            </div>
+          </section>
 
-        <section class="form-section">
-          <h2 class="section-label">Session length</h2>
-          <div class="pill-grid pill-grid-4">
-            <button
-              v-for="d in DURATIONS" :key="d.value"
-              class="pill-btn" :class="{ active: prefs.duration === d.value }"
-              @click="prefs.duration = d.value"
-            >{{ d.label }}</button>
-          </div>
-        </section>
+          <section class="form-section">
+            <h2 class="section-label">Available equipment</h2>
+            <div class="pill-grid pill-grid-2">
+              <button
+                v-for="eq in EQUIPMENT_OPTIONS" :key="eq.value"
+                class="pill-btn" :class="{ active: gymPrefs.equipment.includes(eq.value) }"
+                @click="toggleEquipment(eq.value)"
+              >
+                <span class="pill-icon">{{ eq.icon }}</span> {{ eq.label }}
+              </button>
+            </div>
+            <p v-if="gymPrefs.equipment.length === 0" class="text-xs text-danger mt-8">
+              Select at least one
+            </p>
+          </section>
 
-        <button
-          class="btn btn-primary btn-full mt-8"
-          :disabled="prefs.equipment.length === 0"
-          @click="generate"
-        >
-          ✨ Generate Routine
-        </button>
+          <section class="form-section">
+            <h2 class="section-label">Session length</h2>
+            <div class="pill-grid pill-grid-4">
+              <button
+                v-for="d in DURATIONS" :key="d.value"
+                class="pill-btn" :class="{ active: gymPrefs.duration === d.value }"
+                @click="gymPrefs.duration = d.value"
+              >{{ d.label }}</button>
+            </div>
+          </section>
+
+          <button
+            class="btn btn-primary btn-full mt-8"
+            :disabled="gymPrefs.equipment.length === 0"
+            @click="generate"
+          >✨ Generate Routine</button>
+        </template>
+
+        <!-- ── RUNNING FORM ── -->
+        <template v-else>
+          <section class="form-section">
+            <h2 class="section-label">Goal</h2>
+            <div class="pill-grid pill-grid-2">
+              <button
+                v-for="g in RUNNING_GOALS" :key="g.value"
+                class="pill-btn" :class="{ active: runPrefs.goal === g.value }"
+                @click="runPrefs.goal = g.value"
+              >
+                <span class="pill-icon">{{ g.icon }}</span> {{ g.label }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="section-label">Experience</h2>
+            <div class="pill-grid pill-grid-3">
+              <button
+                v-for="e in EXPERIENCES" :key="e.value"
+                class="pill-btn" :class="{ active: runPrefs.level === e.value }"
+                @click="runPrefs.level = e.value"
+              >{{ e.label }}</button>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="section-label">Days per week</h2>
+            <div class="pill-grid pill-grid-4">
+              <button
+                v-for="d in [3,4,5,6]" :key="d"
+                class="pill-btn" :class="{ active: runPrefs.daysPerWeek === d }"
+                @click="runPrefs.daysPerWeek = d"
+              >{{ d }}</button>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="section-label">Longest recent run</h2>
+            <div class="pill-grid pill-grid-2">
+              <button
+                v-for="r in LONGEST_RUNS" :key="r.value"
+                class="pill-btn" :class="{ active: runPrefs.longestRun === r.value }"
+                @click="runPrefs.longestRun = r.value"
+              >{{ r.label }}</button>
+            </div>
+          </section>
+
+          <button class="btn btn-primary btn-full mt-8" @click="generate">
+            ✨ Generate Running Plan
+          </button>
+        </template>
 
       </div>
 
       <!-- ── LOADING ──────────────────────────────── -->
       <div v-else-if="step === 'loading'" class="loading-state">
         <div class="spinner"></div>
-        <p class="text-muted">Building your personalised routine...</p>
+        <p class="text-muted">{{ mode === 'running' ? 'Building your running plan…' : 'Building your personalised routine…' }}</p>
         <p class="text-xs text-muted mt-8">This usually takes 5–10 seconds</p>
       </div>
 
@@ -101,7 +169,7 @@
       <div v-else-if="step === 'preview'" class="preview-content">
 
         <p class="text-sm text-muted preview-note">
-          Your {{ generatedPlans.length }}-day routine is ready. Review and save below.
+          Your {{ generatedPlans.length }}-day {{ mode === 'running' ? 'running plan' : 'routine' }} is ready. Review and save below.
         </p>
 
         <div v-for="(plan, i) in generatedPlans" :key="i" class="card plan-preview">
@@ -116,7 +184,11 @@
             >
               <div class="exercise-main">
                 <span class="exercise-name">{{ getExerciseName(ex.exerciseId) }}</span>
-                <span class="exercise-meta text-xs text-muted">
+                <!-- Running: show Xkm or N × Xkm; Gym: show sets × reps -->
+                <span v-if="mode === 'running'" class="exercise-meta text-xs text-muted">
+                  {{ runSetLabel(ex) }}
+                </span>
+                <span v-else class="exercise-meta text-xs text-muted">
                   {{ ex.sets.length }} sets × {{ ex.sets[0]?.targetReps }} reps
                 </span>
               </div>
@@ -150,25 +222,34 @@ import { getExerciseName } from '../data/exercises'
 import { nanoid } from '../utils/nanoid'
 import {
   generateRoutine,
+  generateRunningPlan,
   type Goal,
   type Experience,
+  type RunningGoal,
+  type LongestRun,
   type GeneratedPlan,
+  type GeneratedExercise,
   type RoutinePreferences,
+  type RunningPreferences,
 } from '../lib/gemini'
 import type { Equipment } from '../types'
 
 const router = useRouter()
 const store  = useWorkoutsStore()
 
-// ── Step state ───────────────────────────────────────────────────────────────
+// ── Mode ──────────────────────────────────────────────────────────────────────
+type Mode = 'gym' | 'running'
+const mode = ref<Mode>('gym')
+
+// ── Step state ────────────────────────────────────────────────────────────────
 type Step = 'form' | 'loading' | 'error' | 'preview'
-const step         = ref<Step>('form')
-const errorMessage = ref('')
-const saving       = ref(false)
+const step           = ref<Step>('form')
+const errorMessage   = ref('')
+const saving         = ref(false)
 const generatedPlans = ref<GeneratedPlan[]>([])
 
-// ── Preferences ──────────────────────────────────────────────────────────────
-const prefs = reactive<RoutinePreferences>({
+// ── Gym preferences ───────────────────────────────────────────────────────────
+const gymPrefs = reactive<RoutinePreferences>({
   goal:        'hypertrophy',
   daysPerWeek: 3,
   experience:  'intermediate',
@@ -177,17 +258,33 @@ const prefs = reactive<RoutinePreferences>({
 })
 
 function toggleEquipment(eq: Equipment) {
-  const idx = prefs.equipment.indexOf(eq)
-  if (idx === -1) prefs.equipment.push(eq)
-  else            prefs.equipment.splice(idx, 1)
+  const idx = gymPrefs.equipment.indexOf(eq)
+  if (idx === -1) gymPrefs.equipment.push(eq)
+  else            gymPrefs.equipment.splice(idx, 1)
 }
 
-// ── Options ──────────────────────────────────────────────────────────────────
+// ── Running preferences ───────────────────────────────────────────────────────
+const runPrefs = reactive<RunningPreferences>({
+  goal:        'fitness',
+  level:       'beginner',
+  daysPerWeek: 3,
+  longestRun:  'under5',
+})
+
+// ── Options ───────────────────────────────────────────────────────────────────
 const GOALS: { value: Goal; label: string; icon: string }[] = [
-  { value: 'strength',    label: 'Strength',    icon: '🏋️' },
-  { value: 'hypertrophy', label: 'Muscle',       icon: '💪' },
-  { value: 'fat-loss',    label: 'Fat Loss',     icon: '🔥' },
-  { value: 'general',     label: 'General Fit',  icon: '⚡' },
+  { value: 'strength',    label: 'Strength',   icon: '🏋️' },
+  { value: 'hypertrophy', label: 'Muscle',      icon: '💪' },
+  { value: 'fat-loss',    label: 'Fat Loss',    icon: '🔥' },
+  { value: 'general',     label: 'General Fit', icon: '⚡' },
+]
+
+const RUNNING_GOALS: { value: RunningGoal; label: string; icon: string }[] = [
+  { value: 'fitness',        label: 'General Fitness', icon: '🌟' },
+  { value: '5k',             label: '5K',              icon: '🏅' },
+  { value: '10k',            label: '10K',             icon: '🎯' },
+  { value: 'half-marathon',  label: 'Half Marathon',   icon: '🥈' },
+  { value: 'marathon',       label: 'Marathon',        icon: '🏆' },
 ]
 
 const EXPERIENCES: { value: Experience; label: string }[] = [
@@ -212,11 +309,28 @@ const DURATIONS: { value: 30 | 45 | 60 | 90; label: string }[] = [
   { value: 90, label: '90 min' },
 ]
 
-// ── Actions ──────────────────────────────────────────────────────────────────
+const LONGEST_RUNS: { value: LongestRun; label: string }[] = [
+  { value: 'under5',  label: '< 5 km'    },
+  { value: '5to10',   label: '5–10 km'   },
+  { value: '10to20',  label: '10–20 km'  },
+  { value: 'over20',  label: '20+ km'    },
+]
+
+// ── Running preview helper ────────────────────────────────────────────────────
+function runSetLabel(ex: GeneratedExercise): string {
+  if (ex.sets.length === 0) return ''
+  const km = ex.sets[0].targetReps
+  if (ex.sets.length === 1) return `${km} km`
+  return `${ex.sets.length} × ${km} km`
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
 async function generate() {
   step.value = 'loading'
   try {
-    generatedPlans.value = await generateRoutine({ ...prefs })
+    generatedPlans.value = mode.value === 'running'
+      ? await generateRunningPlan({ ...runPrefs })
+      : await generateRoutine({ ...gymPrefs })
     step.value = 'preview'
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Unknown error'
@@ -273,6 +387,36 @@ function saveAll() {
   color: var(--text-muted);
 }
 
+/* ── Mode toggle ────────────────────────────────────────────────────────── */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 4px;
+}
+
+.mode-btn {
+  padding: 10px 12px;
+  border-radius: calc(var(--radius) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.mode-btn.active {
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
 /* ── Pill buttons ───────────────────────────────────────────────────────── */
 .pill-grid {
   display: grid;
@@ -299,12 +443,10 @@ function saveAll() {
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.pill-btn:hover {
-  border-color: var(--primary);
-}
+.pill-btn:hover  { border-color: var(--primary); }
 .pill-btn.active {
   border-color: var(--primary);
-  background: var(--primary-dim, color-mix(in srgb, var(--primary) 15%, transparent));
+  background: var(--primary-dim);
   color: var(--primary);
   font-weight: 600;
 }
@@ -331,42 +473,20 @@ function saveAll() {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Error ──────────────────────────────────────────────────────────────── */
-.error-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.error-title {
-  font-weight: 700;
-  color: var(--danger);
-}
+.error-card  { display: flex; flex-direction: column; gap: 6px; }
+.error-title { font-weight: 700; color: var(--danger); }
 
 /* ── Preview ────────────────────────────────────────────────────────────── */
-.preview-note {
-  margin-bottom: 4px;
-}
+.preview-note { margin-bottom: 4px; }
 
-.plan-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.plan-preview { display: flex; flex-direction: column; gap: 12px; }
 
-.plan-preview-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.plan-preview-header { display: flex; flex-direction: column; gap: 2px; }
 
-.plan-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
+.plan-name { font-size: 1.05rem; font-weight: 700; }
 
 .exercise-list {
   display: flex;
@@ -376,11 +496,7 @@ function saveAll() {
   padding-top: 12px;
 }
 
-.exercise-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.exercise-row  { display: flex; flex-direction: column; gap: 2px; }
 
 .exercise-main {
   display: flex;
@@ -389,22 +505,15 @@ function saveAll() {
   gap: 8px;
 }
 
-.exercise-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
+.exercise-name { font-size: 0.9rem; font-weight: 500; }
 
-.exercise-note {
-  padding-left: 2px;
-  font-style: italic;
-  opacity: 0.8;
-}
+.exercise-note { padding-left: 2px; font-style: italic; opacity: 0.8; }
 
 .preview-actions {
   display: flex;
   gap: 10px;
   position: sticky;
-  bottom: calc(64px + 12px); /* above bottom nav */
+  bottom: calc(64px + 12px);
   background: var(--bg);
   padding: 12px 0 4px;
 }
@@ -414,8 +523,6 @@ function saveAll() {
 /* ── Utilities ──────────────────────────────────────────────────────────── */
 .mt-8  { margin-top: 8px;  }
 .mt-16 { margin-top: 16px; }
-
 .text-danger { color: var(--danger); }
-
 .btn-full { width: 100%; }
 </style>

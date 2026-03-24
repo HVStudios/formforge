@@ -13,6 +13,16 @@ export interface RoutinePreferences {
   duration:    30 | 45 | 60 | 90
 }
 
+export type RunningGoal = '5k' | '10k' | 'half-marathon' | 'marathon' | 'fitness'
+export type LongestRun  = 'under5' | '5to10' | '10to20' | 'over20'
+
+export interface RunningPreferences {
+  goal:        RunningGoal
+  level:       Experience
+  daysPerWeek: number
+  longestRun:  LongestRun
+}
+
 export interface GeneratedExercise {
   exerciseId: string
   sets:       { targetReps: number; targetWeight: number }[]
@@ -110,6 +120,97 @@ Return valid JSON only — no markdown, no explanation:
   const validIds = new Set(EXERCISES.map(e => e.id))
   for (const plan of parsed.plans) {
     plan.exercises = plan.exercises.filter(ex => validIds.has(ex.exerciseId))
+  }
+
+  return parsed.plans
+}
+
+// ── Running regimen ────────────────────────────────────────────────────────
+
+const RUNNING_EXERCISES = `run-easy | Easy Run | sustained aerobic effort, conversational pace, Zone 2
+run-tempo | Tempo Run | comfortably hard, lactate threshold pace (~1hr race effort)
+run-interval | Interval Run | high-intensity repeats (e.g. 6×1km at 5K pace)
+run-long | Long Run | longest run of the week, easy pace, 60–120+ min
+run-recovery | Recovery Run | very easy, very short, active recovery
+run-fartlek | Fartlek | unstructured speed play mixed into an easy run
+run-hill | Hill Repeats | repeated hill climbs for strength and power`
+
+const RUNNING_GOAL_CONTEXT: Record<RunningGoal, string> = {
+  '5k':            'Improve 5K race time — mix of intervals, tempo, and easy runs',
+  '10k':           'Build toward a 10K — tempo work and longer easy runs',
+  'half-marathon': 'Half marathon training — long runs, tempo, and easy base',
+  'marathon':      'Marathon training — high mileage base, long runs, and marathon-pace work',
+  'fitness':       'General running fitness — aerobic base, consistency, enjoyment',
+}
+
+const LONGEST_RUN_LABELS: Record<LongestRun, string> = {
+  under5:  'under 5 km (beginner base)',
+  '5to10': '5–10 km (building endurance)',
+  '10to20':'10–20 km (solid base)',
+  over20:  '20+ km (high mileage runner)',
+}
+
+export async function generateRunningPlan(prefs: RunningPreferences): Promise<GeneratedPlan[]> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) throw new Error('VITE_GEMINI_API_KEY is not set')
+
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    generationConfig: { responseMimeType: 'application/json' },
+  })
+
+  const prompt = `You are an expert running coach. Generate a ${prefs.daysPerWeek}-day weekly running training plan.
+
+Runner profile:
+- Goal: ${RUNNING_GOAL_CONTEXT[prefs.goal]}
+- Level: ${prefs.level}
+- Longest recent run: ${LONGEST_RUN_LABELS[prefs.longestRun]}
+
+You MUST only use exercise IDs from this list (id | name | description):
+${RUNNING_EXERCISES}
+
+Rules:
+1. Create exactly ${prefs.daysPerWeek} plans, one per running day.
+2. "targetReps" = distance in whole kilometres for that segment. "targetWeight" = 0 always.
+3. Each set object must have both targetReps and targetWeight.
+4. For interval sessions split into warmup / main set / cooldown as separate exercise entries.
+   For the main interval block use multiple sets (e.g. 6 sets × 1km).
+5. For single-segment runs use exactly 1 set with the total distance.
+6. notes = concise pace or effort cue (one sentence max, or empty string "").
+7. Never schedule two hard sessions (tempo, interval, hill, fartlek) on consecutive days.
+8. Total weekly distance should be appropriate for the runner's level and longest run.
+9. Include at least one easy/recovery run per week.
+
+Return valid JSON only — no markdown, no explanation:
+{
+  "plans": [
+    {
+      "name": "Day 1 – Easy Run",
+      "description": "Aerobic base, settle into the week",
+      "exercises": [
+        {
+          "exerciseId": "run-easy",
+          "sets": [{"targetReps": 6, "targetWeight": 0}],
+          "notes": "Conversational pace, keep heart rate in Zone 2"
+        }
+      ]
+    }
+  ]
+}`
+
+  const result = await model.generateContent(prompt)
+  const raw    = result.response.text().trim()
+  const json   = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  const parsed = JSON.parse(json) as { plans: GeneratedPlan[] }
+
+  // Keep only known running exercise IDs
+  const validRunIds = new Set([
+    'run-easy', 'run-tempo', 'run-interval', 'run-long',
+    'run-recovery', 'run-fartlek', 'run-hill',
+  ])
+  for (const plan of parsed.plans) {
+    plan.exercises = plan.exercises.filter(ex => validRunIds.has(ex.exerciseId))
   }
 
   return parsed.plans
