@@ -72,7 +72,7 @@ const store = useWorkoutsStore()
   right: 0;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(18, 16, 9, 0.92);
+  background: rgba(8, 11, 24, 0.90);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-top: 1px solid var(--border);
@@ -107,7 +107,7 @@ const store = useWorkoutsStore()
   border-radius: 0 0 2px 2px;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
   opacity: 0;
-  box-shadow: 0 0 8px rgba(34, 212, 122, 0.6);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.55);
 }
 
 .nav-item.active {
@@ -141,21 +141,21 @@ const store = useWorkoutsStore()
   width: 50px;
   height: 36px;
   background: var(--primary-dim);
-  border: 1px solid rgba(34, 212, 122, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.18);
   border-radius: 18px;
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .nav-workout.active .workout-icon,
 .nav-workout.has-active .workout-icon {
-  background: linear-gradient(135deg, #22d47a 0%, #15b863 100%);
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
   border-color: transparent;
-  box-shadow: 0 0 16px rgba(34, 212, 122, 0.45);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
 }
 
 .nav-workout.active svg,
 .nav-workout.has-active svg {
-  color: #041009;
+  color: #001a2e;
 }
 
 /* Hide the indicator bar for the workout pill — it has its own glow */
@@ -170,6 +170,6 @@ const store = useWorkoutsStore()
   border-radius: 50%;
   background: var(--primary);
   border: 2px solid var(--surface);
-  box-shadow: 0 0 6px rgba(34, 212, 122, 0.6);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.60);
 }
 </style>
