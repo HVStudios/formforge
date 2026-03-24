@@ -1,58 +1,55 @@
 <template>
   <nav class="bottom-nav">
-    <RouterLink to="/" class="nav-item" :class="{ active: route.name === 'home' }">
-      <span class="nav-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      </span>
-      <span class="nav-label">Home</span>
-    </RouterLink>
+    <div class="nav-bar">
+      <RouterLink to="/" class="nav-item" :class="{ active: route.name === 'home' }">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </RouterLink>
 
-    <RouterLink to="/plans" class="nav-item" :class="{ active: route.name === 'plans' || route.name === 'plan-new' || route.name === 'plan-edit' }">
-      <span class="nav-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6"/>
-          <line x1="8" y1="12" x2="21" y2="12"/>
-          <line x1="8" y1="18" x2="21" y2="18"/>
-          <line x1="3" y1="6" x2="3.01" y2="6"/>
-          <line x1="3" y1="12" x2="3.01" y2="12"/>
-          <line x1="3" y1="18" x2="3.01" y2="18"/>
-        </svg>
-      </span>
-      <span class="nav-label">Plans</span>
-    </RouterLink>
+      <RouterLink to="/plans" class="nav-item" :class="{ active: route.name === 'plans' || route.name === 'plan-new' || route.name === 'plan-edit' }">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </span>
+        <span class="nav-label">Plans</span>
+      </RouterLink>
 
-    <RouterLink
-      to="/workout"
-      class="nav-item nav-workout"
-      :class="{ active: route.name === 'workout', 'has-active': !!store.activeWorkout }"
-    >
-      <span class="nav-icon workout-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="2"/>
-          <path d="M6.343 6.343a8 8 0 1 0 11.314 11.314"/>
-          <path d="M17.657 6.343A8 8 0 0 1 19 12"/>
-          <line x1="4" y1="4" x2="4" y2="8"/>
-          <line x1="4" y1="4" x2="8" y2="4"/>
-          <line x1="20" y1="20" x2="20" y2="16"/>
-          <line x1="20" y1="20" x2="16" y2="20"/>
-        </svg>
-      </span>
-      <span class="nav-label">Workout</span>
-      <span v-if="store.activeWorkout" class="active-dot" />
-    </RouterLink>
+      <RouterLink
+        to="/workout"
+        class="nav-item nav-workout"
+        :class="{ active: route.name === 'workout', 'has-active': !!store.activeWorkout }"
+      >
+        <span class="nav-icon workout-icon">
+          <!-- Dumbbell icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 4v16M18 4v16M6 8H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M6 12h12"/>
+          </svg>
+        </span>
+        <span class="nav-label">Workout</span>
+        <span v-if="store.activeWorkout" class="active-dot" />
+      </RouterLink>
 
-    <RouterLink to="/history" class="nav-item" :class="{ active: route.name === 'history' || route.name === 'workout-detail' }">
-      <span class="nav-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-      </span>
-      <span class="nav-label">History</span>
-    </RouterLink>
+      <RouterLink to="/history" class="nav-item" :class="{ active: route.name === 'history' || route.name === 'workout-detail' || route.name === 'exercise-history' }">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+        <span class="nav-label">History</span>
+      </RouterLink>
+    </div>
   </nav>
 </template>
 
@@ -70,15 +67,24 @@ const store = useWorkoutsStore()
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(var(--nav-height) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  background: rgba(8, 11, 24, 0.90);
+  z-index: 50;
+  padding: 0 12px calc(var(--safe-bottom) + 8px);
+  pointer-events: none;
+}
+
+.nav-bar {
+  max-width: 480px;
+  margin: 0 auto;
+  height: 64px;
+  background: rgba(11, 15, 30, 0.92);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border-top: 1px solid var(--border);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  border-radius: 22px;
   display: flex;
   align-items: stretch;
-  z-index: 50;
+  pointer-events: auto;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
 }
 
 .nav-item {
@@ -87,42 +93,29 @@ const store = useWorkoutsStore()
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--text-dim);
   text-decoration: none;
   position: relative;
   transition: color 0.2s;
 }
 
-/* Amber indicator bar above active item */
-.nav-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 32px;
-  height: 2px;
-  background: var(--primary);
-  border-radius: 0 0 2px 2px;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
-  opacity: 0;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.55);
-}
-
 .nav-item.active {
   color: var(--primary);
-}
-
-.nav-item.active::before {
-  transform: translateX(-50%) scaleX(1);
-  opacity: 1;
 }
 
 .nav-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 28px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.nav-item.active .nav-icon {
+  background: var(--primary-dim);
 }
 
 .nav-icon svg {
@@ -131,19 +124,19 @@ const store = useWorkoutsStore()
 }
 
 .nav-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
+  font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
-/* Workout button — premium pill */
+/* Workout button — glowing pill */
 .nav-workout .workout-icon {
-  width: 50px;
-  height: 36px;
+  width: 52px;
+  height: 34px;
   background: var(--primary-dim);
   border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: 18px;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border-radius: 12px;
+  transition: all 0.2s;
 }
 
 .nav-workout.active .workout-icon,
@@ -158,18 +151,21 @@ const store = useWorkoutsStore()
   color: #001a2e;
 }
 
-/* Hide the indicator bar for the workout pill — it has its own glow */
-.nav-workout::before { display: none; }
-
 .active-dot {
   position: absolute;
-  top: 6px;
-  right: calc(50% - 15px);
+  top: 4px;
+  right: calc(50% - 16px);
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
   border: 2px solid var(--surface);
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.60);
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 </style>

@@ -99,6 +99,22 @@
         <button class="btn btn-ghost bw-log-btn" @click.stop="openBwSheet">Log</button>
       </div>
 
+      <!-- Steps widget -->
+      <div class="steps-widget card" @click="showStepsSheet = true">
+        <div class="steps-left">
+          <span class="steps-label text-xs text-muted">Today's Steps</span>
+          <div class="steps-main">
+            <span class="steps-value">{{ store.todaySteps.toLocaleString() }}</span>
+          </div>
+          <div class="steps-goal-bar">
+            <div class="steps-goal-fill" :style="{ width: Math.min((store.todaySteps / 10000) * 100, 100) + '%' }" />
+          </div>
+        </div>
+        <button class="btn btn-ghost steps-log-btn" @click.stop="showStepsSheet = true">Log</button>
+      </div>
+
+      <StepsSheet v-model="showStepsSheet" />
+
       <!-- Body weight sheet -->
       <Teleport to="body">
         <Transition name="fade">
@@ -220,12 +236,14 @@ import { useWorkoutsStore } from '../stores/workouts'
 import { useAuthStore } from '../stores/auth'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
 import type { WorkoutPlan } from '../types'
+import StepsSheet from '../components/StepsSheet.vue'
 
 const store     = useWorkoutsStore()
 const authStore = useAuthStore()
 const router    = useRouter()
 
 const showAccount = ref(false)
+const showStepsSheet = ref(false)
 
 // ── Body weight ──────────────────────────────────────────────────────────────
 const showBwSheet = ref(false)
@@ -454,6 +472,38 @@ function startPlan(plan: WorkoutPlan) {
   padding: 32px 20px;
   margin-top: 8px;
 }
+
+/* ── Steps widget ─────────────────────────────────────────────────────────── */
+.steps-widget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.steps-widget:active { background: var(--card-hover); }
+
+.steps-left { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.steps-label { }
+.steps-main { display: flex; align-items: baseline; gap: 6px; }
+.steps-value { font-size: 1.5rem; font-weight: 700; color: var(--text); line-height: 1; }
+
+.steps-goal-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+  max-width: 160px;
+}
+.steps-goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.steps-log-btn { flex-shrink: 0; }
 
 /* ── Body weight widget ────────────────────────────────────────────────────── */
 .bw-widget {

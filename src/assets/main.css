@@ -37,7 +37,7 @@
   --radius-xl: 24px;
 
   /* Layout */
-  --nav-height: 68px;
+  --nav-height: 72px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* Glow tokens */
@@ -127,6 +127,7 @@ h3 { font-size: 1rem; font-weight: 600; }
   overflow-x: hidden;
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .page-inner {
