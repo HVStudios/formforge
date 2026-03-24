@@ -62,6 +62,15 @@ export const EXERCISES: Exercise[] = [
   { id: 'rowing', name: 'Rowing Machine', category: 'cardio', equipment: 'machine' },
   { id: 'jump-rope', name: 'Jump Rope', category: 'cardio', equipment: 'other' },
   { id: 'elliptical', name: 'Elliptical', category: 'cardio', equipment: 'machine' },
+
+  // Running — used by the AI running regimen generator
+  { id: 'run-easy',      name: 'Easy Run',      category: 'cardio', equipment: 'other' },
+  { id: 'run-tempo',     name: 'Tempo Run',      category: 'cardio', equipment: 'other' },
+  { id: 'run-interval',  name: 'Interval Run',   category: 'cardio', equipment: 'other' },
+  { id: 'run-long',      name: 'Long Run',        category: 'cardio', equipment: 'other' },
+  { id: 'run-recovery',  name: 'Recovery Run',   category: 'cardio', equipment: 'other' },
+  { id: 'run-fartlek',   name: 'Fartlek',         category: 'cardio', equipment: 'other' },
+  { id: 'run-hill',      name: 'Hill Repeats',    category: 'cardio', equipment: 'other' },
 ]
 
 export const CATEGORY_LABELS: Record<string, string> = {

@@ -208,6 +208,53 @@ export const useWorkoutsStore = defineStore('workouts', () => {
 
   const totalWorkouts = computed(() => logs.value.length)
 
+  // ─── Personal Records ────────────────────────────
+  /** Epley estimated 1-rep-max */
+  function e1rm(weight: number, reps: number): number {
+    if (!weight || !reps) return 0
+    return weight * (1 + reps / 30)
+  }
+
+  /** Map<exerciseId, best-ever set info> — excludes running exercises */
+  const prMap = computed(() => {
+    const map = new Map<string, { e1rm: number; weight: number; reps: number; date: string }>()
+    for (const log of logs.value) {
+      for (const ex of log.exercises) {
+        if (ex.exerciseId.startsWith('run-')) continue
+        for (const set of ex.sets) {
+          if (!set.completed || !set.weight || !set.reps) continue
+          const calc = e1rm(set.weight, set.reps)
+          const cur = map.get(ex.exerciseId)
+          if (!cur || calc > cur.e1rm) {
+            map.set(ex.exerciseId, { e1rm: calc, weight: set.weight, reps: set.reps, date: log.startedAt })
+          }
+        }
+      }
+    }
+    return map
+  })
+
+  /** Chronological history for one exercise (oldest first) */
+  function getExerciseHistory(exerciseId: string) {
+    type Session = { date: string; logId: string; bestE1rm: number; bestWeight: number; bestReps: number; totalSets: number }
+    const sessions: Session[] = []
+    for (const log of [...logs.value].reverse()) {
+      const ex = log.exercises.find(e => e.exerciseId === exerciseId)
+      if (!ex) continue
+      let best = 0, bestW = 0, bestR = 0, sets = 0
+      for (const set of ex.sets) {
+        if (!set.completed) continue
+        sets++
+        if (set.weight && set.reps) {
+          const calc = e1rm(set.weight, set.reps)
+          if (calc > best) { best = calc; bestW = set.weight; bestR = set.reps }
+        }
+      }
+      if (sets > 0) sessions.push({ date: log.startedAt, logId: log.id, bestE1rm: best, bestWeight: bestW, bestReps: bestR, totalSets: sets })
+    }
+    return sessions
+  }
+
   return {
     plans,
     logs,
@@ -228,5 +275,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     recentLogs,
     weeklyCount,
     totalWorkouts,
+    prMap,
+    e1rm,
+    getExerciseHistory,
   }
 })

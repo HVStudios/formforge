@@ -108,6 +108,28 @@
   </main>
 
   <ExerciseSelector v-model="showSelector" @select="addExercise" />
+
+  <!-- Rest timer (fixed above bottom nav) -->
+  <Teleport to="body">
+    <Transition name="slide-up">
+      <div v-if="restLeft > 0" class="rest-banner">
+        <div class="rest-info">
+          <span class="rest-label">Rest</span>
+          <span class="rest-countdown" :class="{ 'rest-urgent': restLeft <= 10 }">
+            {{ formatDuration(restLeft) }}
+          </span>
+        </div>
+        <div class="rest-presets">
+          <button
+            v-for="s in REST_OPTIONS" :key="s"
+            class="rest-preset" :class="{ active: restTarget === s }"
+            @click="setRestDuration(s)"
+          >{{ restLabel(s) }}</button>
+        </div>
+        <button class="rest-dismiss" @click="stopRest">✕</button>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -164,11 +186,47 @@ function toggleExpand(idx: number) {
   expandedMap[idx] = !expandedMap[idx]
 }
 
-// Timer
+// Elapsed workout timer
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval>
 onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { clearInterval(timer); stopRest() })
+
+// ── Rest timer ────────────────────────────────────────────────────────────────
+const REST_OPTIONS = [60, 90, 120, 180] as const
+type RestOption = typeof REST_OPTIONS[number]
+const restTarget = ref<RestOption>(90)
+const restLeft   = ref(0)
+let restInterval: ReturnType<typeof setInterval> | null = null
+
+function restLabel(s: number) {
+  if (s < 60) return `${s}s`
+  if (s % 60 === 0) return `${s / 60}m`
+  return `${s}s`
+}
+
+function startRest() {
+  if (restInterval) clearInterval(restInterval)
+  restLeft.value = restTarget.value
+  restInterval = setInterval(() => {
+    restLeft.value--
+    if (restLeft.value <= 0) {
+      clearInterval(restInterval!)
+      restInterval = null
+      navigator.vibrate?.([200, 100, 200, 100, 200])
+    }
+  }, 1000)
+}
+
+function stopRest() {
+  if (restInterval) { clearInterval(restInterval); restInterval = null }
+  restLeft.value = 0
+}
+
+function setRestDuration(s: RestOption) {
+  restTarget.value = s
+  startRest()
+}
 
 const elapsedLabel = computed(() => {
   if (!store.activeWorkout) return '00:00'
@@ -191,7 +249,9 @@ function completedCount(ex: LoggedExercise) {
 
 // Mutations
 function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
+  const wasCompleted = workout.exercises[exIdx].sets[setIdx].completed
   workout.exercises[exIdx].sets[setIdx] = newSet
+  if (newSet.completed && !wasCompleted) startRest()
   // Auto-expand next exercise when current is done
   if (isExerciseDone(workout.exercises[exIdx])) {
     const next = exIdx + 1
@@ -424,5 +484,81 @@ function discard() {
 .expand-enter-from, .expand-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+/* ── Rest timer banner ───────────────────────────────────────────────────── */
+.rest-banner {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 10px);
+  left: 16px;
+  right: 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 49;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.rest-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rest-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rest-countdown {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  min-width: 48px;
+  transition: color 0.2s;
+}
+.rest-countdown.rest-urgent { color: var(--danger); }
+
+.rest-presets {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.rest-preset {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.rest-preset.active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.rest-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 </style>

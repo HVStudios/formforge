@@ -6,6 +6,7 @@ import GenerateRoutineView  from '../views/GenerateRoutineView.vue'
 import ActiveWorkoutView    from '../views/ActiveWorkoutView.vue'
 import HistoryView          from '../views/HistoryView.vue'
 import WorkoutDetailView    from '../views/WorkoutDetailView.vue'
+import ExerciseHistoryView  from '../views/ExerciseHistoryView.vue'
 import AuthView             from '../views/AuthView.vue'
 import { useAuthStore }  from '../stores/auth'
 
@@ -25,8 +26,9 @@ const router = createRouter({
     { path: '/plans/generate',     name: 'plan-generate',  component: GenerateRoutineView,  meta: { requiresAuth: true } },
     { path: '/plans/:id/edit',     name: 'plan-edit',      component: EditPlanView,      meta: { requiresAuth: true }, props: true },
     { path: '/workout',            name: 'workout',        component: ActiveWorkoutView, meta: { requiresAuth: true } },
-    { path: '/history',            name: 'history',        component: HistoryView,       meta: { requiresAuth: true } },
-    { path: '/history/:id',        name: 'workout-detail', component: WorkoutDetailView, meta: { requiresAuth: true }, props: true },
+    { path: '/history',              name: 'history',          component: HistoryView,          meta: { requiresAuth: true } },
+    { path: '/history/:id',          name: 'workout-detail',   component: WorkoutDetailView,    meta: { requiresAuth: true }, props: true },
+    { path: '/exercise/:id',         name: 'exercise-history', component: ExerciseHistoryView,  meta: { requiresAuth: true }, props: true },
   ],
   scrollBehavior() {
     return { top: 0 }
