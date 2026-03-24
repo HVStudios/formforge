@@ -244,7 +244,8 @@ const chart = computed(() => {
 
 .e1rm-chart {
   width: 100%;
-  height: 120px;
+  height: auto;
+  aspect-ratio: 2.5 / 1;
   display: block;
 }
 

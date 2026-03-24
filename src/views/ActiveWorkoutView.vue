@@ -39,9 +39,17 @@
           <p class="text-xs text-muted">In progress</p>
           <h1 class="workout-title">{{ store.activeWorkout.planName }}</h1>
         </div>
-        <div class="timer-badge">
-          <span class="timer-icon">⏱</span>
-          <span class="timer-label">{{ elapsedLabel }}</span>
+        <div class="header-right">
+          <button
+            class="rest-toggle"
+            :class="{ 'rest-toggle-off': !restEnabled }"
+            @click="restEnabled = !restEnabled"
+            :title="restEnabled ? 'Rest timer on — tap to disable' : 'Rest timer off — tap to enable'"
+          >⏸ Rest</button>
+          <div class="timer-badge">
+            <span class="timer-icon">⏱</span>
+            <span class="timer-label">{{ elapsedLabel }}</span>
+          </div>
         </div>
       </div>
 
@@ -82,13 +90,16 @@
                 <span class="set-col-hdr">Weight (kg)</span>
                 <span class="set-col-hdr">Reps</span>
                 <span style="width:38px" />
+                <span style="width:28px" />
               </div>
               <SetRow
                 v-for="(set, si) in ex.sets"
                 :key="si"
                 :set="set"
                 :number="si + 1"
+                :canDelete="ex.sets.length > 1"
                 @update:set="updateSet(exIdx, si, $event)"
+                @delete="removeSet(exIdx, si)"
               />
               <button class="btn btn-ghost btn-sm add-set-btn" @click="addSet(exIdx)">+ Set</button>
             </div>
@@ -193,6 +204,9 @@ onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => { clearInterval(timer); stopRest() })
 
 // ── Rest timer ────────────────────────────────────────────────────────────────
+const restEnabled = ref(localStorage.getItem('ff_rest_enabled') !== 'false')
+watch(restEnabled, v => localStorage.setItem('ff_rest_enabled', String(v)))
+
 const REST_OPTIONS = [60, 90, 120, 180] as const
 type RestOption = typeof REST_OPTIONS[number]
 const restTarget = ref<RestOption>(90)
@@ -251,7 +265,7 @@ function completedCount(ex: LoggedExercise) {
 function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
   const wasCompleted = workout.exercises[exIdx].sets[setIdx].completed
   workout.exercises[exIdx].sets[setIdx] = newSet
-  if (newSet.completed && !wasCompleted) startRest()
+  if (newSet.completed && !wasCompleted && restEnabled.value) startRest()
   // Auto-expand next exercise when current is done
   if (isExerciseDone(workout.exercises[exIdx])) {
     const next = exIdx + 1
@@ -260,6 +274,10 @@ function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
       expandedMap[next] = true
     }
   }
+}
+
+function removeSet(exIdx: number, setIdx: number) {
+  workout.exercises[exIdx].sets.splice(setIdx, 1)
 }
 
 function addSet(exIdx: number) {
@@ -346,6 +364,31 @@ function discard() {
 
 .workout-title {
   font-size: 1.5rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rest-toggle {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.rest-toggle-off {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text-dim);
 }
 
 .timer-badge {

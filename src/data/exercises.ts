@@ -91,3 +91,7 @@ export function getExerciseById(id: string): Exercise | undefined {
 export function getExerciseName(id: string): string {
   return getExerciseById(id)?.name ?? id
 }
+
+export function isRunningExercise(exerciseId: string): boolean {
+  return exerciseId.startsWith('run-')
+}
