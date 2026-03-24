@@ -9,12 +9,16 @@ export const EXERCISES: Exercise[] = [
   { id: 'cable-crossover', name: 'Cable Crossover', category: 'chest', equipment: 'cable' },
   { id: 'push-up', name: 'Push-up', category: 'chest', equipment: 'bodyweight' },
   { id: 'dip', name: 'Dip', category: 'chest', equipment: 'bodyweight' },
+  { id: 'decline-push-up', name: 'Decline Push-up', category: 'chest', equipment: 'bodyweight' },
+  { id: 'wide-push-up', name: 'Wide Push-up', category: 'chest', equipment: 'bodyweight' },
 
   // Back
   { id: 'deadlift', name: 'Deadlift', category: 'back', equipment: 'barbell' },
   { id: 'barbell-row', name: 'Barbell Row', category: 'back', equipment: 'barbell' },
   { id: 'pull-up', name: 'Pull-up', category: 'back', equipment: 'bodyweight' },
   { id: 'chin-up', name: 'Chin-up', category: 'back', equipment: 'bodyweight' },
+  { id: 'inverted-row', name: 'Inverted Row', category: 'back', equipment: 'bodyweight' },
+  { id: 'superman', name: 'Superman', category: 'back', equipment: 'bodyweight' },
   { id: 'lat-pulldown', name: 'Lat Pulldown', category: 'back', equipment: 'cable' },
   { id: 'seated-row', name: 'Seated Cable Row', category: 'back', equipment: 'cable' },
   { id: 'db-row', name: 'Dumbbell Row', category: 'back', equipment: 'dumbbell' },
@@ -30,6 +34,13 @@ export const EXERCISES: Exercise[] = [
   { id: 'lunge', name: 'Lunge', category: 'legs', equipment: 'dumbbell' },
   { id: 'calf-raise', name: 'Calf Raise', category: 'legs', equipment: 'machine' },
   { id: 'goblet-squat', name: 'Goblet Squat', category: 'legs', equipment: 'dumbbell' },
+  { id: 'bw-squat', name: 'Bodyweight Squat', category: 'legs', equipment: 'bodyweight' },
+  { id: 'bw-lunge', name: 'Bodyweight Lunge', category: 'legs', equipment: 'bodyweight' },
+  { id: 'glute-bridge', name: 'Glute Bridge', category: 'legs', equipment: 'bodyweight' },
+  { id: 'wall-sit', name: 'Wall Sit', category: 'legs', equipment: 'bodyweight' },
+  { id: 'step-up', name: 'Step-up', category: 'legs', equipment: 'bodyweight' },
+  { id: 'nordic-curl', name: 'Nordic Curl', category: 'legs', equipment: 'bodyweight' },
+  { id: 'pistol-squat', name: 'Pistol Squat', category: 'legs', equipment: 'bodyweight' },
 
   // Shoulders
   { id: 'ohp', name: 'Overhead Press', category: 'shoulders', equipment: 'barbell' },
@@ -38,6 +49,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'front-raise', name: 'Front Raise', category: 'shoulders', equipment: 'dumbbell' },
   { id: 'rear-delt-fly', name: 'Rear Delt Fly', category: 'shoulders', equipment: 'dumbbell' },
   { id: 'upright-row', name: 'Upright Row', category: 'shoulders', equipment: 'barbell' },
+  { id: 'pike-push-up', name: 'Pike Push-up', category: 'shoulders', equipment: 'bodyweight' },
 
   // Arms
   { id: 'barbell-curl', name: 'Barbell Curl', category: 'arms', equipment: 'barbell' },
@@ -47,6 +59,8 @@ export const EXERCISES: Exercise[] = [
   { id: 'skull-crusher', name: 'Skull Crusher', category: 'arms', equipment: 'barbell' },
   { id: 'overhead-tricep', name: 'Overhead Tricep Extension', category: 'arms', equipment: 'dumbbell' },
   { id: 'preacher-curl', name: 'Preacher Curl', category: 'arms', equipment: 'barbell' },
+  { id: 'diamond-push-up', name: 'Diamond Push-up', category: 'arms', equipment: 'bodyweight' },
+  { id: 'close-grip-push-up', name: 'Close-Grip Push-up', category: 'arms', equipment: 'bodyweight' },
 
   // Core
   { id: 'plank', name: 'Plank', category: 'core', equipment: 'bodyweight' },
@@ -58,6 +72,11 @@ export const EXERCISES: Exercise[] = [
 
   // Cardio
   { id: 'running', name: 'Running', category: 'cardio', equipment: 'other' },
+  { id: 'burpee', name: 'Burpee', category: 'cardio', equipment: 'bodyweight' },
+  { id: 'mountain-climber', name: 'Mountain Climber', category: 'cardio', equipment: 'bodyweight' },
+  { id: 'jumping-jack', name: 'Jumping Jack', category: 'cardio', equipment: 'bodyweight' },
+  { id: 'high-knees', name: 'High Knees', category: 'cardio', equipment: 'bodyweight' },
+  { id: 'box-jump', name: 'Box Jump', category: 'cardio', equipment: 'bodyweight' },
   { id: 'cycling', name: 'Cycling', category: 'cardio', equipment: 'machine' },
   { id: 'rowing', name: 'Rowing Machine', category: 'cardio', equipment: 'machine' },
   { id: 'jump-rope', name: 'Jump Rope', category: 'cardio', equipment: 'other' },

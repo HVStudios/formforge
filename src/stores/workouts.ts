@@ -11,7 +11,7 @@ import {
 import { db } from '../firebase'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseName, isRunningExercise } from '../data/exercises'
-import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry } from '../types'
+import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry } from '../types'
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -27,6 +27,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   const logs          = ref<WorkoutLog[]>(load('ff_logs', []))
   const activeWorkout = ref<WorkoutLog | null>(load('ff_active', null))
   const bodyWeightLog = ref<WeightEntry[]>(load('ff_bw', []))
+  const stepEntries   = ref<StepEntry[]>(load('ff_steps', []))
 
   let _uid: string | null = null
 
@@ -45,6 +46,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   function saveLogsLocal()   { localStorage.setItem('ff_logs',   JSON.stringify(logs.value)) }
   function saveActiveLocal() { localStorage.setItem('ff_active', JSON.stringify(activeWorkout.value)) }
   function saveBwLocal()     { localStorage.setItem('ff_bw',     JSON.stringify(bodyWeightLog.value)) }
+  function saveStepsLocal()  { localStorage.setItem('ff_steps',  JSON.stringify(stepEntries.value)) }
 
   // ─── Firestore helpers (fire-and-forget) ─────────
   function fsWritePlan(plan: WorkoutPlan) {
@@ -75,15 +77,20 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     if (!_uid) return
     setDoc(doc(db, 'users', _uid, 'meta', 'bodyweight'), { entries: bodyWeightLog.value }).catch(_reportSyncError)
   }
+  function fsWriteSteps() {
+    if (!_uid) return
+    setDoc(doc(db, 'users', _uid, 'meta', 'steps'), { entries: stepEntries.value }).catch(_reportSyncError)
+  }
 
   // ─── Firestore load (called on auth) ─────────────
   async function loadFromFirestore(uid: string) {
     _uid = uid
-    const [plansSnap, logsSnap, activeSnap, bwSnap] = await Promise.all([
+    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap] = await Promise.all([
       getDocs(collection(db, 'users', uid, 'plans')),
       getDocs(collection(db, 'users', uid, 'logs')),
       getDoc(doc(db, 'users', uid, 'meta', 'active')),
       getDoc(doc(db, 'users', uid, 'meta', 'bodyweight')),
+      getDoc(doc(db, 'users', uid, 'meta', 'steps')),
     ])
     plans.value = plansSnap.docs.map(d => d.data() as WorkoutPlan)
     logs.value  = logsSnap.docs
@@ -91,10 +98,12 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
     activeWorkout.value = activeSnap.exists() ? (activeSnap.data() as WorkoutLog) : null
     bodyWeightLog.value = bwSnap.exists() ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
+    stepEntries.value   = stepsSnap.exists() ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
     savePlansLocal()
     saveLogsLocal()
     saveActiveLocal()
     saveBwLocal()
+    saveStepsLocal()
   }
 
   /** Call when the user signs out — clears in-memory and local data. */
@@ -104,10 +113,12 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     logs.value          = []
     activeWorkout.value = null
     bodyWeightLog.value = []
+    stepEntries.value   = []
     localStorage.removeItem('ff_plans')
     localStorage.removeItem('ff_logs')
     localStorage.removeItem('ff_active')
     localStorage.removeItem('ff_bw')
+    localStorage.removeItem('ff_steps')
   }
 
   // ─── Plans ──────────────────────────────────────
@@ -255,6 +266,28 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     return map
   })
 
+  // ─── Steps ──────────────────────────────────────
+  function logSteps(date: string, steps: number) {
+    const idx = stepEntries.value.findIndex(e => e.date === date)
+    if (idx !== -1) {
+      stepEntries.value[idx].steps = steps
+    } else {
+      stepEntries.value.unshift({ date, steps })
+      stepEntries.value.sort((a, b) => b.date.localeCompare(a.date))
+    }
+    saveStepsLocal()
+    fsWriteSteps()
+  }
+
+  function getStepsForDate(date: string): number {
+    return stepEntries.value.find(e => e.date === date)?.steps ?? 0
+  }
+
+  const todaySteps = computed(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    return getStepsForDate(today)
+  })
+
   // ─── Body Weight ─────────────────────────────────
   function logWeight(kg: number, date?: string) {
     const dateStr = date ?? new Date().toISOString().slice(0, 10)
@@ -326,5 +359,9 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     logWeight,
     deleteWeightEntry,
     latestWeight,
+    stepEntries,
+    logSteps,
+    getStepsForDate,
+    todaySteps,
   }
 })

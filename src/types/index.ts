@@ -63,6 +63,12 @@ export interface LoggedExercise {
   notes: string
 }
 
+/** A daily step count entry */
+export interface StepEntry {
+  date: string  // YYYY-MM-DD
+  steps: number
+}
+
 /** A body weight entry */
 export interface WeightEntry {
   date: string   // YYYY-MM-DD
