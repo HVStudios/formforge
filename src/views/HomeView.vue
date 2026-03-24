@@ -5,7 +5,15 @@
       <div class="home-header">
         <div>
           <p class="greeting text-muted text-sm">{{ greeting }}</p>
-          <h1>FormForge</h1>
+          <div class="title-row">
+            <h1>FormForge</h1>
+            <RouterLink to="/profile" class="level-badge" v-if="gStore.level >= 1">
+              <span class="level-badge-lv">Lv.{{ gStore.level }}</span>
+              <div class="level-badge-bar">
+                <div class="level-badge-fill" :style="{ width: (gStore.progress * 100).toFixed(0) + '%' }" />
+              </div>
+            </RouterLink>
+          </div>
         </div>
         <div class="header-actions">
           <button class="account-btn" @click="showAccount = true" :title="authStore.email ?? 'Guest'">
@@ -237,9 +245,11 @@ import { useAuthStore } from '../stores/auth'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
 import type { WorkoutPlan } from '../types'
 import StepsSheet from '../components/StepsSheet.vue'
+import { useGamificationStore } from '../stores/gamification'
 
 const store     = useWorkoutsStore()
 const authStore = useAuthStore()
+const gStore    = useGamificationStore()
 const router    = useRouter()
 
 const showAccount = ref(false)
@@ -320,6 +330,46 @@ function startPlan(plan: WorkoutPlan) {
   margin-bottom: 20px;
 }
 .greeting { margin-bottom: 2px; }
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.level-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 100px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.level-badge-lv {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #fbbf24;
+  white-space: nowrap;
+}
+
+.level-badge-bar {
+  width: 36px;
+  height: 4px;
+  background: rgba(251, 191, 36, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.level-badge-fill {
+  height: 100%;
+  background: #fbbf24;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
 
 .header-actions {
   display: flex;

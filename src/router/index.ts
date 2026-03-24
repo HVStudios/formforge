@@ -8,6 +8,7 @@ import HistoryView          from '../views/HistoryView.vue'
 import WorkoutDetailView    from '../views/WorkoutDetailView.vue'
 import ExerciseHistoryView  from '../views/ExerciseHistoryView.vue'
 import AuthView             from '../views/AuthView.vue'
+import ProfileView         from '../views/ProfileView.vue'
 import { useAuthStore }  from '../stores/auth'
 
 declare module 'vue-router' {
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/history',              name: 'history',          component: HistoryView,          meta: { requiresAuth: true } },
     { path: '/history/:id',          name: 'workout-detail',   component: WorkoutDetailView,    meta: { requiresAuth: true }, props: true },
     { path: '/exercise/:id',         name: 'exercise-history', component: ExerciseHistoryView,  meta: { requiresAuth: true }, props: true },
+    { path: '/profile',              name: 'profile',          component: ProfileView,          meta: { requiresAuth: true } },
   ],
   scrollBehavior() {
     return { top: 0 }

@@ -6,6 +6,7 @@
       </transition>
     </router-view>
     <BottomNav v-if="route.name !== 'auth'" />
+    <AchievementToast />
 
     <!-- Sync error toast -->
     <Transition name="toast">
@@ -17,18 +18,20 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import BottomNav        from './components/BottomNav.vue'
-import { useAuthStore }     from './stores/auth'
-import { useWorkoutsStore } from './stores/workouts'
+import BottomNav          from './components/BottomNav.vue'
+import AchievementToast   from './components/AchievementToast.vue'
+import { useAuthStore }         from './stores/auth'
+import { useWorkoutsStore }     from './stores/workouts'
+import { useGamificationStore } from './stores/gamification'
 
-const route         = useRoute()
-const authStore     = useAuthStore()
-const workoutsStore = useWorkoutsStore()
+const route            = useRoute()
+const authStore        = useAuthStore()
+const workoutsStore    = useWorkoutsStore()
+const gamificationStore = useGamificationStore()
 
-// Whenever auth state resolves to a user, load their data from Firestore.
-// Whenever they sign out, clear local data.
+// Load / clear data on auth state change
 watch(
   () => authStore.user,
   async user => {
@@ -38,12 +41,34 @@ watch(
       } catch (err) {
         console.error('Firestore load failed, using local data:', err)
       }
+      try {
+        await gamificationStore.loadFromFirestore(user.uid)
+        await gamificationStore.evaluate()
+      } catch (err) {
+        console.error('Gamification load failed:', err)
+      }
     } else {
       workoutsStore.clearData()
+      gamificationStore.clearData()
     }
   },
   { immediate: true },
 )
+
+// Re-evaluate whenever relevant workout data changes
+const dataSnapshot = computed(() => ({
+  l: workoutsStore.logs.length,
+  p: workoutsStore.plans.length,
+  s: workoutsStore.stepEntries.length,
+  b: workoutsStore.bodyWeightLog.length,
+  r: workoutsStore.prMap.size,
+}))
+
+watch(dataSnapshot, async () => {
+  if (authStore.user && gamificationStore._loaded) {
+    await gamificationStore.evaluate()
+  }
+})
 </script>
 
 <style scoped>

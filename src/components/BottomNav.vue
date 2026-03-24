@@ -49,6 +49,16 @@
         </span>
         <span class="nav-label">History</span>
       </RouterLink>
+
+      <RouterLink to="/profile" class="nav-item" :class="{ active: route.name === 'profile' }">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </span>
+        <span class="nav-label">Profile</span>
+        <span v-if="gStore.level > 1 || gStore.achievements.length > 0" class="level-chip">{{ gStore.level }}</span>
+      </RouterLink>
     </div>
   </nav>
 </template>
@@ -56,9 +66,11 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
+import { useGamificationStore } from '../stores/gamification'
 
-const route = useRoute()
-const store = useWorkoutsStore()
+const route  = useRoute()
+const store  = useWorkoutsStore()
+const gStore = useGamificationStore()
 </script>
 
 <style scoped>
@@ -162,6 +174,25 @@ const store = useWorkoutsStore()
   border: 2px solid var(--surface);
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.60);
   animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+.level-chip {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 16px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #fbbf24;
+  color: #1a0e00;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--surface);
+  line-height: 1;
 }
 
 @keyframes dot-pulse {
