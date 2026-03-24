@@ -63,6 +63,12 @@ export interface LoggedExercise {
   notes: string
 }
 
+/** A body weight entry */
+export interface WeightEntry {
+  date: string   // YYYY-MM-DD
+  kg: number
+}
+
 /** A workout session (in progress or completed) */
 export interface WorkoutLog {
   id: string
