@@ -81,7 +81,7 @@ function confirmDelete(plan: WorkoutPlan) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 16px;
+  margin: 16px auto 0;
   width: 100%;
   max-width: 260px;
 }
