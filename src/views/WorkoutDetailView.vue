@@ -39,7 +39,7 @@
             <div class="ex-detail-header">
               <!-- Link to history drill-down for trackable exercises -->
               <RouterLink
-                v-if="!ex.exerciseId.startsWith('run-')"
+                v-if="!isRunningExercise(ex.exerciseId)"
                 :to="{ name: 'exercise-history', params: { id: ex.exerciseId } }"
                 class="ex-detail-name ex-link"
               >{{ ex.exerciseName }}</RouterLink>
@@ -93,6 +93,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
+import { isRunningExercise } from '../data/exercises'
 import type { LoggedExercise, LoggedSet } from '../types'
 
 const props = defineProps<{ id: string }>()

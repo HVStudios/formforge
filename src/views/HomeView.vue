@@ -111,6 +111,15 @@
               <h3>Log Body Weight</h3>
             </div>
             <div class="sheet-body">
+              <div class="bw-date-row">
+                <label class="bw-date-label text-xs text-muted">Date</label>
+                <input
+                  v-model="bwDate"
+                  type="date"
+                  :max="today"
+                  class="bw-date-input"
+                />
+              </div>
               <div class="bw-input-row">
                 <input
                   ref="bwInputEl"
@@ -221,17 +230,20 @@ const showAccount = ref(false)
 // ── Body weight ──────────────────────────────────────────────────────────────
 const showBwSheet = ref(false)
 const bwInput     = ref<number | null>(null)
+const bwDate      = ref(new Date().toISOString().slice(0, 10))
+const today       = new Date().toISOString().slice(0, 10)
 const bwInputEl   = ref<HTMLInputElement | null>(null)
 
 function openBwSheet() {
   bwInput.value = store.latestWeight?.kg ?? null
+  bwDate.value  = new Date().toISOString().slice(0, 10)
   showBwSheet.value = true
   nextTick(() => bwInputEl.value?.focus())
 }
 
 function saveBwEntry() {
   if (!bwInput.value || bwInput.value <= 0) return
-  store.logWeight(bwInput.value)
+  store.logWeight(bwInput.value, bwDate.value)
   showBwSheet.value = false
   bwInput.value = null
 }
@@ -475,6 +487,27 @@ function startPlan(plan: WorkoutPlan) {
 
 /* ── Body weight sheet ─────────────────────────────────────────────────────── */
 .bw-sheet { z-index: 101; }
+
+.bw-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.bw-date-label { flex-shrink: 0; }
+
+.bw-date-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.875rem;
+  padding: 6px 10px;
+  outline: none;
+  color-scheme: dark;
+}
+.bw-date-input:focus { border-color: var(--primary); }
 
 .bw-input-row {
   display: flex;

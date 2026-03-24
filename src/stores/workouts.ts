@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { nanoid } from '../utils/nanoid'
-import { getExerciseName } from '../data/exercises'
+import { getExerciseName, isRunningExercise } from '../data/exercises'
 import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry } from '../types'
 
 function load<T>(key: string, fallback: T): T {
@@ -30,6 +30,16 @@ export const useWorkoutsStore = defineStore('workouts', () => {
 
   let _uid: string | null = null
 
+  // ─── Sync error state ────────────────────────────
+  const syncError = ref<string | null>(null)
+  let _syncErrorTimer: ReturnType<typeof setTimeout> | null = null
+  function _reportSyncError(e: unknown) {
+    console.error(e)
+    syncError.value = 'Failed to sync. Check your connection.'
+    if (_syncErrorTimer) clearTimeout(_syncErrorTimer)
+    _syncErrorTimer = setTimeout(() => { syncError.value = null }, 5000)
+  }
+
   // ─── Local cache helpers ─────────────────────────
   function savePlansLocal()  { localStorage.setItem('ff_plans',  JSON.stringify(plans.value)) }
   function saveLogsLocal()   { localStorage.setItem('ff_logs',   JSON.stringify(logs.value)) }
@@ -39,31 +49,31 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   // ─── Firestore helpers (fire-and-forget) ─────────
   function fsWritePlan(plan: WorkoutPlan) {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'plans', plan.id), plan).catch(console.error)
+    setDoc(doc(db, 'users', _uid, 'plans', plan.id), plan).catch(_reportSyncError)
   }
   function fsDeletePlan(planId: string) {
     if (!_uid) return
-    deleteDoc(doc(db, 'users', _uid, 'plans', planId)).catch(console.error)
+    deleteDoc(doc(db, 'users', _uid, 'plans', planId)).catch(_reportSyncError)
   }
   function fsWriteLog(log: WorkoutLog) {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'logs', log.id), log).catch(console.error)
+    setDoc(doc(db, 'users', _uid, 'logs', log.id), log).catch(_reportSyncError)
   }
   function fsDeleteLog(logId: string) {
     if (!_uid) return
-    deleteDoc(doc(db, 'users', _uid, 'logs', logId)).catch(console.error)
+    deleteDoc(doc(db, 'users', _uid, 'logs', logId)).catch(_reportSyncError)
   }
   function fsWriteActive(workout: WorkoutLog | null) {
     if (!_uid) return
     if (workout) {
-      setDoc(doc(db, 'users', _uid, 'meta', 'active'), workout).catch(console.error)
+      setDoc(doc(db, 'users', _uid, 'meta', 'active'), workout).catch(_reportSyncError)
     } else {
-      deleteDoc(doc(db, 'users', _uid, 'meta', 'active')).catch(console.error)
+      deleteDoc(doc(db, 'users', _uid, 'meta', 'active')).catch(_reportSyncError)
     }
   }
   function fsWriteBw() {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'meta', 'bodyweight'), { entries: bodyWeightLog.value }).catch(console.error)
+    setDoc(doc(db, 'users', _uid, 'meta', 'bodyweight'), { entries: bodyWeightLog.value }).catch(_reportSyncError)
   }
 
   // ─── Firestore load (called on auth) ─────────────
@@ -231,7 +241,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     const map = new Map<string, { e1rm: number; weight: number; reps: number; date: string }>()
     for (const log of logs.value) {
       for (const ex of log.exercises) {
-        if (ex.exerciseId.startsWith('run-')) continue
+        if (isRunningExercise(ex.exerciseId)) continue
         for (const set of ex.sets) {
           if (!set.completed || !set.weight || !set.reps) continue
           const calc = e1rm(set.weight, set.reps)
@@ -292,6 +302,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     plans,
     logs,
     activeWorkout,
+    syncError,
     loadFromFirestore,
     clearData,
     savePlan,

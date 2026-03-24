@@ -553,7 +553,8 @@ const topExercises = computed(() => {
 /* ── Body weight chart ────────────────────────────────────────────────────── */
 .bw-svg {
   width: 100%;
-  height: 100px;
+  height: auto;
+  aspect-ratio: 3 / 1;
   display: block;
 }
 
