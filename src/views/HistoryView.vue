@@ -112,6 +112,45 @@
         </div>
       </div>
 
+      <!-- ── Body weight chart ────────────────────────────────────── -->
+      <div v-if="bwChart" class="chart-card card">
+        <div class="chart-title">Body weight trend</div>
+        <svg
+          :viewBox="`0 0 ${bwChart.W} ${bwChart.H}`"
+          preserveAspectRatio="none"
+          class="bw-svg"
+        >
+          <line
+            v-for="gl in bwChart.gridLines" :key="gl.y"
+            :x1="bwChart.pad.left" :y1="gl.y" :x2="bwChart.W - bwChart.pad.right" :y2="gl.y"
+            stroke="rgba(255,255,255,0.06)" stroke-width="1"
+          />
+          <text
+            v-for="gl in bwChart.gridLines" :key="'l'+gl.y"
+            :x="bwChart.pad.left - 4" :y="gl.y + 4"
+            text-anchor="end" class="bw-axis-text"
+          >{{ gl.label }}</text>
+          <path :d="bwChart.area" fill="rgba(139,92,246,0.08)" />
+          <polyline
+            :points="bwChart.line"
+            fill="none"
+            stroke="var(--accent)"
+            stroke-width="2"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+          />
+          <circle
+            v-for="(pt, i) in bwChart.pts" :key="i"
+            :cx="pt.x" :cy="pt.y" r="3"
+            fill="var(--accent)"
+          />
+        </svg>
+        <div class="bw-x-labels" :style="{ paddingLeft: bwChart.pad.left + 'px', paddingRight: bwChart.pad.right + 'px' }">
+          <span>{{ formatDate(bwChartData[0].date) }}</span>
+          <span>{{ formatDate(bwChartData[bwChartData.length - 1].date) }}</span>
+        </div>
+      </div>
+
       <!-- ── Log list ──────────────────────────────────────────────── -->
       <div v-if="store.logs.length === 0" class="empty-state">
         <div class="empty-icon">📈</div>
@@ -335,6 +374,42 @@ const prList = computed(() => {
     .slice(0, 10)
 })
 
+// ── Body weight chart ─────────────────────────────────────────────────────────
+const BW = { W: 300, H: 100, pad: { top: 8, right: 8, bottom: 6, left: 36 } }
+
+const bwChartData = computed(() => store.bodyWeightLog.slice(-60))
+
+const bwChart = computed(() => {
+  const data = bwChartData.value
+  if (data.length < 2) return null
+  const { W, H, pad } = BW
+  const iW = W - pad.left - pad.right
+  const iH = H - pad.top - pad.bottom
+  const n  = data.length
+
+  const vals   = data.map(e => e.kg)
+  const maxVal = Math.max(...vals)
+  const minVal = Math.min(...vals) * 0.98
+  const range  = maxVal - minVal || 1
+
+  const pts = data.map((e, i) => ({
+    x: pad.left + (i / (n - 1)) * iW,
+    y: pad.top + iH - ((e.kg - minVal) / range) * iH,
+  }))
+
+  const line = pts.map(p => `${p.x},${p.y}`).join(' ')
+  const area = `M ${pts[0].x},${pad.top + iH} ` +
+    pts.map(p => `L ${p.x},${p.y}`).join(' ') +
+    ` L ${pts[n - 1].x},${pad.top + iH} Z`
+
+  const gridLines = [0, 0.5, 1].map(t => ({
+    y: pad.top + iH * (1 - t),
+    label: (minVal + range * t).toFixed(1),
+  }))
+
+  return { pts, line, area, gridLines, W, H, pad }
+})
+
 // ── Top exercises ────────────────────────────────────────────────────────────
 const topExercises = computed(() => {
   const counts = new Map<string, number>()
@@ -474,6 +549,27 @@ const topExercises = computed(() => {
 .pr-e1rm-label { }
 
 .pr-chevron { font-size: 1.1rem; color: var(--text-dim); }
+
+/* ── Body weight chart ────────────────────────────────────────────────────── */
+.bw-svg {
+  width: 100%;
+  height: 100px;
+  display: block;
+}
+
+.bw-axis-text {
+  font-size: 9px;
+  fill: var(--text-dim);
+  font-family: inherit;
+}
+
+.bw-x-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
 
 /* ── Top exercises ────────────────────────────────────────────────────────── */
 .top-list { display: flex; flex-direction: column; gap: 8px; }

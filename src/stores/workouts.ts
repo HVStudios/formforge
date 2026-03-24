@@ -11,7 +11,7 @@ import {
 import { db } from '../firebase'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseName } from '../data/exercises'
-import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise } from '../types'
+import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry } from '../types'
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -26,6 +26,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   const plans         = ref<WorkoutPlan[]>(load('ff_plans', []))
   const logs          = ref<WorkoutLog[]>(load('ff_logs', []))
   const activeWorkout = ref<WorkoutLog | null>(load('ff_active', null))
+  const bodyWeightLog = ref<WeightEntry[]>(load('ff_bw', []))
 
   let _uid: string | null = null
 
@@ -33,6 +34,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   function savePlansLocal()  { localStorage.setItem('ff_plans',  JSON.stringify(plans.value)) }
   function saveLogsLocal()   { localStorage.setItem('ff_logs',   JSON.stringify(logs.value)) }
   function saveActiveLocal() { localStorage.setItem('ff_active', JSON.stringify(activeWorkout.value)) }
+  function saveBwLocal()     { localStorage.setItem('ff_bw',     JSON.stringify(bodyWeightLog.value)) }
 
   // ─── Firestore helpers (fire-and-forget) ─────────
   function fsWritePlan(plan: WorkoutPlan) {
@@ -59,23 +61,30 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       deleteDoc(doc(db, 'users', _uid, 'meta', 'active')).catch(console.error)
     }
   }
+  function fsWriteBw() {
+    if (!_uid) return
+    setDoc(doc(db, 'users', _uid, 'meta', 'bodyweight'), { entries: bodyWeightLog.value }).catch(console.error)
+  }
 
   // ─── Firestore load (called on auth) ─────────────
   async function loadFromFirestore(uid: string) {
     _uid = uid
-    const [plansSnap, logsSnap, activeSnap] = await Promise.all([
+    const [plansSnap, logsSnap, activeSnap, bwSnap] = await Promise.all([
       getDocs(collection(db, 'users', uid, 'plans')),
       getDocs(collection(db, 'users', uid, 'logs')),
       getDoc(doc(db, 'users', uid, 'meta', 'active')),
+      getDoc(doc(db, 'users', uid, 'meta', 'bodyweight')),
     ])
     plans.value = plansSnap.docs.map(d => d.data() as WorkoutPlan)
     logs.value  = logsSnap.docs
       .map(d => d.data() as WorkoutLog)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
     activeWorkout.value = activeSnap.exists() ? (activeSnap.data() as WorkoutLog) : null
+    bodyWeightLog.value = bwSnap.exists() ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
     savePlansLocal()
     saveLogsLocal()
     saveActiveLocal()
+    saveBwLocal()
   }
 
   /** Call when the user signs out — clears in-memory and local data. */
@@ -84,9 +93,11 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     plans.value         = []
     logs.value          = []
     activeWorkout.value = null
+    bodyWeightLog.value = []
     localStorage.removeItem('ff_plans')
     localStorage.removeItem('ff_logs')
     localStorage.removeItem('ff_active')
+    localStorage.removeItem('ff_bw')
   }
 
   // ─── Plans ──────────────────────────────────────
@@ -234,6 +245,28 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     return map
   })
 
+  // ─── Body Weight ─────────────────────────────────
+  function logWeight(kg: number, date?: string) {
+    const dateStr = date ?? new Date().toISOString().slice(0, 10)
+    const idx = bodyWeightLog.value.findIndex(e => e.date === dateStr)
+    if (idx !== -1) {
+      bodyWeightLog.value[idx] = { date: dateStr, kg }
+    } else {
+      bodyWeightLog.value.push({ date: dateStr, kg })
+      bodyWeightLog.value.sort((a, b) => a.date.localeCompare(b.date))
+    }
+    saveBwLocal()
+    fsWriteBw()
+  }
+
+  function deleteWeightEntry(date: string) {
+    bodyWeightLog.value = bodyWeightLog.value.filter(e => e.date !== date)
+    saveBwLocal()
+    fsWriteBw()
+  }
+
+  const latestWeight = computed(() => bodyWeightLog.value[bodyWeightLog.value.length - 1] ?? null)
+
   /** Chronological history for one exercise (oldest first) */
   function getExerciseHistory(exerciseId: string) {
     type Session = { date: string; logId: string; bestE1rm: number; bestWeight: number; bestReps: number; totalSets: number }
@@ -278,5 +311,9 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     prMap,
     e1rm,
     getExerciseHistory,
+    bodyWeightLog,
+    logWeight,
+    deleteWeightEntry,
+    latestWeight,
   }
 })

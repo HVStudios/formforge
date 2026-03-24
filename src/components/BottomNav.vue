@@ -72,7 +72,9 @@ const store = useWorkoutsStore()
   right: 0;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: var(--surface);
+  background: rgba(18, 16, 9, 0.92);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: stretch;
@@ -89,11 +91,32 @@ const store = useWorkoutsStore()
   color: var(--text-dim);
   text-decoration: none;
   position: relative;
-  transition: color 0.15s;
+  transition: color 0.2s;
+}
+
+/* Amber indicator bar above active item */
+.nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 32px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 0 0 2px 2px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+  opacity: 0;
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
 }
 
 .nav-item.active {
   color: var(--primary);
+}
+
+.nav-item.active::before {
+  transform: translateX(-50%) scaleX(1);
+  opacity: 1;
 }
 
 .nav-icon {
@@ -113,33 +136,40 @@ const store = useWorkoutsStore()
   letter-spacing: 0.02em;
 }
 
-/* Workout button is special – rounded pill shape */
+/* Workout button — premium pill */
 .nav-workout .workout-icon {
-  width: 48px;
+  width: 50px;
   height: 36px;
   background: var(--primary-dim);
+  border: 1px solid rgba(245, 166, 35, 0.18);
   border-radius: 18px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .nav-workout.active .workout-icon,
 .nav-workout.has-active .workout-icon {
-  background: var(--primary);
+  background: linear-gradient(135deg, #f5a623 0%, #e08c10 100%);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(245, 166, 35, 0.40);
 }
 
 .nav-workout.active svg,
 .nav-workout.has-active svg {
-  color: #0d0d0d;
+  color: #0d0804;
 }
+
+/* Hide the indicator bar for the workout pill — it has its own glow */
+.nav-workout::before { display: none; }
 
 .active-dot {
   position: absolute;
   top: 6px;
-  right: calc(50% - 14px);
+  right: calc(50% - 15px);
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
   border: 2px solid var(--surface);
+  box-shadow: 0 0 6px rgba(245, 166, 35, 0.6);
 }
 </style>

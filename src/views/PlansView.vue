@@ -129,6 +129,6 @@ function confirmDelete(plan: WorkoutPlan) {
 
 .plan-actions .btn-primary { flex: 1; }
 .plan-actions .btn-outline { flex: 1; }
-.plan-actions .btn-ghost { margin-left: auto; color: var(--danger); }
+.plan-actions .btn-ghost { color: var(--danger); }
 .plan-actions .btn-ghost:hover { background: var(--danger-dim); color: var(--danger); }
 </style>
