@@ -21,6 +21,7 @@ export interface Exercise {
   name: string
   category: ExerciseCategory
   equipment: Equipment
+  custom?: true   // present on user-created exercises
 }
 
 /** One planned set inside a workout plan */

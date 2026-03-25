@@ -11,7 +11,7 @@ import {
 import { db } from '../firebase'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseName, isRunningExercise } from '../data/exercises'
-import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry } from '../types'
+import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry, Exercise } from '../types'
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -23,11 +23,12 @@ function load<T>(key: string, fallback: T): T {
 }
 
 export const useWorkoutsStore = defineStore('workouts', () => {
-  const plans         = ref<WorkoutPlan[]>(load('ff_plans', []))
-  const logs          = ref<WorkoutLog[]>(load('ff_logs', []))
-  const activeWorkout = ref<WorkoutLog | null>(load('ff_active', null))
-  const bodyWeightLog = ref<WeightEntry[]>(load('ff_bw', []))
-  const stepEntries   = ref<StepEntry[]>(load('ff_steps', []))
+  const plans           = ref<WorkoutPlan[]>(load('ff_plans', []))
+  const logs            = ref<WorkoutLog[]>(load('ff_logs', []))
+  const activeWorkout   = ref<WorkoutLog | null>(load('ff_active', null))
+  const bodyWeightLog   = ref<WeightEntry[]>(load('ff_bw', []))
+  const stepEntries     = ref<StepEntry[]>(load('ff_steps', []))
+  const customExercises = ref<Exercise[]>(load('ff_custom_exercises', []))
 
   let _uid: string | null = null
 
@@ -42,11 +43,12 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   }
 
   // ─── Local cache helpers ─────────────────────────
-  function savePlansLocal()  { localStorage.setItem('ff_plans',  JSON.stringify(plans.value)) }
-  function saveLogsLocal()   { localStorage.setItem('ff_logs',   JSON.stringify(logs.value)) }
-  function saveActiveLocal() { localStorage.setItem('ff_active', JSON.stringify(activeWorkout.value)) }
-  function saveBwLocal()     { localStorage.setItem('ff_bw',     JSON.stringify(bodyWeightLog.value)) }
-  function saveStepsLocal()  { localStorage.setItem('ff_steps',  JSON.stringify(stepEntries.value)) }
+  function savePlansLocal()         { localStorage.setItem('ff_plans',            JSON.stringify(plans.value)) }
+  function saveLogsLocal()          { localStorage.setItem('ff_logs',             JSON.stringify(logs.value)) }
+  function saveActiveLocal()        { localStorage.setItem('ff_active',           JSON.stringify(activeWorkout.value)) }
+  function saveBwLocal()            { localStorage.setItem('ff_bw',               JSON.stringify(bodyWeightLog.value)) }
+  function saveStepsLocal()         { localStorage.setItem('ff_steps',            JSON.stringify(stepEntries.value)) }
+  function saveCustomExercisesLocal() { localStorage.setItem('ff_custom_exercises', JSON.stringify(customExercises.value)) }
 
   // ─── Firestore helpers (fire-and-forget) ─────────
   function fsWritePlan(plan: WorkoutPlan) {
@@ -81,44 +83,53 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     if (!_uid) return
     setDoc(doc(db, 'users', _uid, 'meta', 'steps'), { entries: stepEntries.value }).catch(_reportSyncError)
   }
+  function fsWriteCustomExercises() {
+    if (!_uid) return
+    setDoc(doc(db, 'users', _uid, 'meta', 'customExercises'), { exercises: customExercises.value }).catch(_reportSyncError)
+  }
 
   // ─── Firestore load (called on auth) ─────────────
   async function loadFromFirestore(uid: string) {
     _uid = uid
-    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap] = await Promise.all([
+    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap, customSnap] = await Promise.all([
       getDocs(collection(db, 'users', uid, 'plans')),
       getDocs(collection(db, 'users', uid, 'logs')),
       getDoc(doc(db, 'users', uid, 'meta', 'active')),
       getDoc(doc(db, 'users', uid, 'meta', 'bodyweight')),
       getDoc(doc(db, 'users', uid, 'meta', 'steps')),
+      getDoc(doc(db, 'users', uid, 'meta', 'customExercises')),
     ])
     plans.value = plansSnap.docs.map(d => d.data() as WorkoutPlan)
     logs.value  = logsSnap.docs
       .map(d => d.data() as WorkoutLog)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-    activeWorkout.value = activeSnap.exists() ? (activeSnap.data() as WorkoutLog) : null
-    bodyWeightLog.value = bwSnap.exists() ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
-    stepEntries.value   = stepsSnap.exists() ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
+    activeWorkout.value   = activeSnap.exists() ? (activeSnap.data() as WorkoutLog) : null
+    bodyWeightLog.value   = bwSnap.exists() ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
+    stepEntries.value     = stepsSnap.exists() ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
+    customExercises.value = customSnap.exists() ? ((customSnap.data() as { exercises: Exercise[] }).exercises ?? []) : []
     savePlansLocal()
     saveLogsLocal()
     saveActiveLocal()
     saveBwLocal()
     saveStepsLocal()
+    saveCustomExercisesLocal()
   }
 
   /** Call when the user signs out — clears in-memory and local data. */
   function clearData() {
     _uid = null
-    plans.value         = []
-    logs.value          = []
-    activeWorkout.value = null
-    bodyWeightLog.value = []
-    stepEntries.value   = []
+    plans.value           = []
+    logs.value            = []
+    activeWorkout.value   = null
+    bodyWeightLog.value   = []
+    stepEntries.value     = []
+    customExercises.value = []
     localStorage.removeItem('ff_plans')
     localStorage.removeItem('ff_logs')
     localStorage.removeItem('ff_active')
     localStorage.removeItem('ff_bw')
     localStorage.removeItem('ff_steps')
+    localStorage.removeItem('ff_custom_exercises')
   }
 
   // ─── Plans ──────────────────────────────────────
@@ -155,11 +166,36 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   }
 
   // ─── Active workout ─────────────────────────────
+  function resolveExerciseName(id: string): string {
+    return (
+      getExerciseName(id) ||
+      customExercises.value.find(e => e.id === id)?.name ||
+      id
+    )
+  }
+
+  function saveCustomExercise(ex: Exercise) {
+    const idx = customExercises.value.findIndex(e => e.id === ex.id)
+    if (idx !== -1) {
+      customExercises.value[idx] = ex
+    } else {
+      customExercises.value.push(ex)
+    }
+    saveCustomExercisesLocal()
+    fsWriteCustomExercises()
+  }
+
+  function deleteCustomExercise(id: string) {
+    customExercises.value = customExercises.value.filter(e => e.id !== id)
+    saveCustomExercisesLocal()
+    fsWriteCustomExercises()
+  }
+
   function startWorkout(plan: WorkoutPlan) {
     const exercises: LoggedExercise[] = plan.exercises.map((pe: PlanExercise) => ({
       uid: pe.uid,
       exerciseId: pe.exerciseId,
-      exerciseName: getExerciseName(pe.exerciseId),
+      exerciseName: resolveExerciseName(pe.exerciseId),
       notes: pe.notes,
       sets: pe.sets.map(s => ({
         reps: s.targetReps || null,
@@ -363,5 +399,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     logSteps,
     getStepsForDate,
     todaySteps,
+    customExercises,
+    saveCustomExercise,
+    deleteCustomExercise,
   }
 })
