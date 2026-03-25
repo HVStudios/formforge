@@ -20,20 +20,35 @@
             type="search"
             autofocus
           />
-          <div class="category-tabs">
+
+          <!-- Muscle group filter -->
+          <div class="filter-row">
             <button
               v-for="cat in allCategories"
               :key="cat.value"
-              class="cat-tab"
+              class="filter-pill"
               :class="{ active: selectedCategory === cat.value }"
               @click="selectedCategory = cat.value"
             >
-              {{ cat.label }}
+              {{ cat.icon }} {{ cat.label }}
+            </button>
+          </div>
+
+          <!-- Equipment filter -->
+          <div class="filter-row equipment-row">
+            <button
+              v-for="eq in allEquipment"
+              :key="eq.value"
+              class="filter-pill eq-pill"
+              :class="{ active: selectedEquipment === eq.value }"
+              @click="selectedEquipment = eq.value"
+            >
+              {{ eq.icon }} {{ eq.label }}
             </button>
           </div>
         </div>
 
-        <!-- ── Create custom exercise header ──────────── -->
+        <!-- ── Create custom header ─────────────────── -->
         <div v-else class="sheet-header">
           <div class="flex items-center gap-8 mb-12">
             <button class="btn btn-ghost btn-icon" @click="cancelCreate">←</button>
@@ -41,25 +56,59 @@
           </div>
         </div>
 
-        <!-- ── Exercise list ───────────────────────────── -->
+        <!-- ── Exercise list ───────────────────────── -->
         <div v-if="!creatingCustom" class="sheet-body">
-          <div v-if="filtered.length === 0 && !search" class="empty-state">
-            <div class="empty-icon">🏋️</div>
-            <p>No exercises found</p>
-          </div>
 
-          <template v-else>
-            <!-- No results: prompt to create -->
-            <div v-if="filtered.length === 0" class="no-results">
+          <!-- No results -->
+          <template v-if="totalFiltered === 0">
+            <div v-if="search" class="no-results">
               <p class="text-muted text-sm">No results for "{{ search }}"</p>
               <button class="btn btn-outline btn-full mt-12" @click="startCreate(search)">
                 + Create "{{ search }}" as custom exercise
               </button>
             </div>
+            <div v-else class="no-results">
+              <p class="text-muted text-sm">No exercises match these filters.</p>
+              <button class="btn btn-ghost btn-sm mt-8" @click="clearFilters">Clear filters</button>
+            </div>
+          </template>
 
-            <!-- Exercise rows -->
+          <!-- Grouped view (All category, no search) -->
+          <template v-else-if="isGrouped">
+            <div
+              v-for="group in grouped"
+              :key="group.category"
+              class="exercise-group"
+            >
+              <div class="group-header">
+                <span class="group-icon">{{ group.icon }}</span>
+                <span class="group-label">{{ group.label }}</span>
+                <span class="group-count">{{ group.exercises.length }}</span>
+              </div>
+              <button
+                v-for="ex in group.exercises"
+                :key="ex.id"
+                class="exercise-row"
+                @click="select(ex)"
+              >
+                <div>
+                  <div class="exercise-name">
+                    {{ ex.name }}
+                    <span v-if="ex.custom" class="custom-tag">Custom</span>
+                  </div>
+                  <div class="exercise-meta text-xs text-muted">
+                    {{ EQUIPMENT_LABELS[ex.equipment] }}
+                  </div>
+                </div>
+                <span class="add-icon">+</span>
+              </button>
+            </div>
+          </template>
+
+          <!-- Flat filtered view -->
+          <template v-else>
             <button
-              v-for="ex in filtered"
+              v-for="ex in flatFiltered"
               :key="ex.id"
               class="exercise-row"
               @click="select(ex)"
@@ -70,16 +119,16 @@
                   <span v-if="ex.custom" class="custom-tag">Custom</span>
                 </div>
                 <div class="exercise-meta text-xs text-muted">
-                  {{ CATEGORY_LABELS[ex.category] }} · {{ ex.equipment }}
+                  {{ selectedCategory === 'all' ? CATEGORY_LABELS[ex.category] + ' · ' : '' }}{{ EQUIPMENT_LABELS[ex.equipment] }}
                 </div>
               </div>
               <span class="add-icon">+</span>
             </button>
           </template>
 
-          <!-- Create custom button at bottom (always visible when list has items) -->
+          <!-- Create custom button -->
           <button
-            v-if="filtered.length > 0"
+            v-if="totalFiltered > 0"
             class="create-custom-btn"
             @click="startCreate(search)"
           >
@@ -87,7 +136,7 @@
           </button>
         </div>
 
-        <!-- ── Custom exercise creation form ──────────── -->
+        <!-- ── Create form ──────────────────────────── -->
         <div v-else class="sheet-body create-form">
           <div class="field">
             <label class="label">Exercise name</label>
@@ -110,7 +159,7 @@
                 :class="{ active: customCategory === cat.value }"
                 @click="customCategory = cat.value"
               >
-                {{ cat.label }}
+                {{ cat.icon }} {{ cat.label }}
               </button>
             </div>
           </div>
@@ -125,7 +174,7 @@
                 :class="{ active: customEquipment === eq.value }"
                 @click="customEquipment = eq.value"
               >
-                {{ eq.label }}
+                {{ eq.icon }} {{ eq.label }}
               </button>
             </div>
           </div>
@@ -158,52 +207,86 @@ const emit = defineEmits<{
 
 const store = useWorkoutsStore()
 
-const search          = ref('')
-const selectedCategory = ref('all')
-const creatingCustom  = ref(false)
-const customName      = ref('')
-const customCategory  = ref<ExerciseCategory>('other')
-const customEquipment = ref<Equipment>('other')
-const nameInput       = ref<HTMLInputElement | null>(null)
+const search           = ref('')
+const selectedCategory  = ref('all')
+const selectedEquipment = ref('all')
+const creatingCustom   = ref(false)
+const customName       = ref('')
+const customCategory   = ref<ExerciseCategory>('other')
+const customEquipment  = ref<Equipment>('other')
+const nameInput        = ref<HTMLInputElement | null>(null)
+
+const EQUIPMENT_LABELS: Record<string, string> = {
+  barbell:    'Barbell',
+  dumbbell:   'Dumbbell',
+  bodyweight: 'Bodyweight',
+  machine:    'Machine',
+  cable:      'Cable',
+  other:      'Other',
+}
 
 const allCategories = [
-  { value: 'all',       label: 'All' },
-  { value: 'chest',     label: 'Chest' },
-  { value: 'back',      label: 'Back' },
-  { value: 'legs',      label: 'Legs' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'arms',      label: 'Arms' },
-  { value: 'core',      label: 'Core' },
-  { value: 'cardio',    label: 'Cardio' },
+  { value: 'all',       label: 'All',       icon: '✦' },
+  { value: 'chest',     label: 'Chest',     icon: '💪' },
+  { value: 'back',      label: 'Back',      icon: '🔙' },
+  { value: 'legs',      label: 'Legs',      icon: '🦵' },
+  { value: 'shoulders', label: 'Shoulders', icon: '🏔️' },
+  { value: 'arms',      label: 'Arms',      icon: '💪' },
+  { value: 'core',      label: 'Core',      icon: '🔥' },
+  { value: 'cardio',    label: 'Cardio',    icon: '🏃' },
+]
+
+const allEquipment = [
+  { value: 'all',        label: 'All',        icon: '✦' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '🤸' },
+  { value: 'dumbbell',   label: 'Dumbbell',   icon: '🏋️' },
+  { value: 'barbell',    label: 'Barbell',    icon: '🔩' },
+  { value: 'cable',      label: 'Cable',      icon: '🔗' },
+  { value: 'machine',    label: 'Machine',    icon: '⚙️' },
+  { value: 'other',      label: 'Other',      icon: '📦' },
 ]
 
 const exerciseCategories = [
-  { value: 'chest',     label: 'Chest' },
-  { value: 'back',      label: 'Back' },
-  { value: 'legs',      label: 'Legs' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'arms',      label: 'Arms' },
-  { value: 'core',      label: 'Core' },
-  { value: 'cardio',    label: 'Cardio' },
-  { value: 'other',     label: 'Other' },
+  { value: 'chest',     label: 'Chest',     icon: '💪' },
+  { value: 'back',      label: 'Back',      icon: '🔙' },
+  { value: 'legs',      label: 'Legs',      icon: '🦵' },
+  { value: 'shoulders', label: 'Shoulders', icon: '🏔️' },
+  { value: 'arms',      label: 'Arms',      icon: '💪' },
+  { value: 'core',      label: 'Core',      icon: '🔥' },
+  { value: 'cardio',    label: 'Cardio',    icon: '🏃' },
+  { value: 'other',     label: 'Other',     icon: '📦' },
 ]
 
 const equipmentOptions = [
-  { value: 'barbell',    label: 'Barbell' },
-  { value: 'dumbbell',   label: 'Dumbbell' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'machine',    label: 'Machine' },
-  { value: 'cable',      label: 'Cable' },
-  { value: 'other',      label: 'Other' },
+  { value: 'barbell',    label: 'Barbell',    icon: '🔩' },
+  { value: 'dumbbell',   label: 'Dumbbell',   icon: '🏋️' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '🤸' },
+  { value: 'machine',    label: 'Machine',    icon: '⚙️' },
+  { value: 'cable',      label: 'Cable',      icon: '🔗' },
+  { value: 'other',      label: 'Other',      icon: '📦' },
 ]
+
+const CATEGORY_GROUP_META: Record<string, { label: string; icon: string; order: number }> = {
+  chest:     { label: 'Chest',     icon: '💪', order: 0 },
+  back:      { label: 'Back',      icon: '🔙', order: 1 },
+  legs:      { label: 'Legs',      icon: '🦵', order: 2 },
+  shoulders: { label: 'Shoulders', icon: '🏔️', order: 3 },
+  arms:      { label: 'Arms',      icon: '💪', order: 4 },
+  core:      { label: 'Core',      icon: '🔥', order: 5 },
+  cardio:    { label: 'Cardio',    icon: '🏃', order: 6 },
+  other:     { label: 'Other',     icon: '📦', order: 7 },
+}
 
 const allExercises = computed<Exercise[]>(() => [
   ...EXERCISES,
   ...store.customExercises,
 ])
 
-const filtered = computed(() => {
-  let list = allExercises.value
+/** Apply equipment + category + search filters */
+function applyFilters(list: Exercise[]): Exercise[] {
+  if (selectedEquipment.value !== 'all') {
+    list = list.filter(e => e.equipment === selectedEquipment.value)
+  }
   if (selectedCategory.value !== 'all') {
     list = list.filter(e => e.category === selectedCategory.value)
   }
@@ -212,7 +295,47 @@ const filtered = computed(() => {
     list = list.filter(e => e.name.toLowerCase().includes(q))
   }
   return list
+}
+
+/** Show grouped sections when browsing with no active search */
+const isGrouped = computed(() =>
+  selectedCategory.value === 'all' && !search.value.trim()
+)
+
+/** Grouped by muscle category (for browse mode) */
+const grouped = computed(() => {
+  const filtered = applyFilters(allExercises.value)
+  const map = new Map<string, Exercise[]>()
+  for (const ex of filtered) {
+    const group = map.get(ex.category) ?? []
+    group.push(ex)
+    map.set(ex.category, group)
+  }
+  return [...map.entries()]
+    .map(([cat, exercises]) => ({
+      category: cat,
+      label: CATEGORY_GROUP_META[cat]?.label ?? cat,
+      icon:  CATEGORY_GROUP_META[cat]?.icon ?? '•',
+      order: CATEGORY_GROUP_META[cat]?.order ?? 99,
+      exercises,
+    }))
+    .sort((a, b) => a.order - b.order)
 })
+
+/** Flat list (for filtered / search mode) */
+const flatFiltered = computed(() => applyFilters(allExercises.value))
+
+const totalFiltered = computed(() =>
+  isGrouped.value
+    ? grouped.value.reduce((n, g) => n + g.exercises.length, 0)
+    : flatFiltered.value.length
+)
+
+function clearFilters() {
+  selectedCategory.value  = 'all'
+  selectedEquipment.value = 'all'
+  search.value = ''
+}
 
 function select(ex: Exercise) {
   emit('select', ex)
@@ -222,15 +345,16 @@ function select(ex: Exercise) {
 function close() {
   emit('update:modelValue', false)
   search.value = ''
-  selectedCategory.value = 'all'
+  selectedCategory.value  = 'all'
+  selectedEquipment.value = 'all'
   cancelCreate()
 }
 
 async function startCreate(prefill = '') {
-  customName.value     = prefill.trim()
-  customCategory.value = 'other'
+  customName.value      = prefill.trim()
+  customCategory.value  = 'other'
   customEquipment.value = 'other'
-  creatingCustom.value = true
+  creatingCustom.value  = true
   await nextTick()
   nameInput.value?.focus()
   nameInput.value?.select()
@@ -258,19 +382,22 @@ function confirmCreate() {
 </script>
 
 <style scoped>
-.category-tabs {
+/* ── Filter rows ──────────────────────────────── */
+.filter-row {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
-.category-tabs::-webkit-scrollbar { display: none; }
+.filter-row::-webkit-scrollbar { display: none; }
 
-.cat-tab {
+.equipment-row { padding-top: 6px; }
+
+.filter-pill {
   flex-shrink: 0;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 100px;
   border: 1.5px solid var(--border);
   background: transparent;
@@ -280,18 +407,67 @@ function confirmCreate() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.cat-tab.active {
+
+/* Category pills — primary (blue) */
+.filter-pill.active {
   background: var(--primary-dim);
   border-color: var(--primary);
   color: var(--primary);
 }
 
+/* Equipment pills — accent (purple) when active */
+.eq-pill.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Grouped sections ──────────────────────────── */
+.exercise-group {
+  margin-bottom: 4px;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 6px;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+  /* subtle blur to blend with glass bg */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.group-icon { font-size: 1rem; }
+
+.group-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.group-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--card);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+/* ── Exercise rows ─────────────────────────────── */
 .exercise-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 14px 4px;
+  padding: 13px 4px;
   background: none;
   border: none;
   border-bottom: 1px solid var(--border);
@@ -301,7 +477,7 @@ function confirmCreate() {
   transition: background 0.1s;
   border-radius: var(--radius-sm);
 }
-.exercise-row:last-of-type { border-bottom: none; }
+.exercise-row:last-child { border-bottom: none; }
 .exercise-row:active { background: var(--card); }
 
 .exercise-name {
@@ -310,6 +486,10 @@ function confirmCreate() {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.exercise-meta {
+  margin-top: 2px;
 }
 
 .custom-tag {
@@ -330,11 +510,13 @@ function confirmCreate() {
   flex-shrink: 0;
 }
 
+/* ── Empty / no-results ────────────────────────── */
 .no-results {
-  padding: 24px 0 8px;
+  padding: 32px 0 8px;
   text-align: center;
 }
 
+/* ── Create custom button ─────────────────────── */
 .create-custom-btn {
   width: 100%;
   margin-top: 16px;
@@ -354,7 +536,7 @@ function confirmCreate() {
   background: var(--primary-dim);
 }
 
-/* ── Create form ────────────────────────────── */
+/* ── Create form ──────────────────────────────── */
 .create-form {
   display: flex;
   flex-direction: column;
