@@ -1,3 +1,13 @@
+export type PlanGoal =
+  | 'strength'
+  | 'hypertrophy'
+  | 'endurance'
+  | 'fat-loss'
+  | 'mobility'
+  | 'general'
+
+export type PlanDifficulty = 'beginner' | 'intermediate' | 'advanced'
+
 export type ExerciseCategory =
   | 'chest'
   | 'back'
@@ -43,6 +53,10 @@ export interface WorkoutPlan {
   id: string
   name: string
   description: string
+  goal?: PlanGoal
+  difficulty?: PlanDifficulty
+  daysPerWeek?: number    // 1–7
+  sessionDuration?: number // minutes: 30 | 45 | 60 | 90
   exercises: PlanExercise[]
   createdAt: string
   updatedAt: string

@@ -25,7 +25,13 @@
             <p v-if="plan.description" class="text-sm text-muted plan-desc">{{ plan.description }}</p>
             <div class="plan-meta">
               <span class="badge badge-green">{{ plan.exercises.length }} exercises</span>
-              <span class="text-xs text-muted">Updated {{ formatDate(plan.updatedAt) }}</span>
+              <span v-if="plan.goal" class="badge goal-badge" :class="`goal-${plan.goal}`">{{ GOAL_META[plan.goal].icon }} {{ GOAL_META[plan.goal].label }}</span>
+              <span v-if="plan.difficulty" class="badge diff-badge" :class="`diff-${plan.difficulty}`">{{ DIFF_META[plan.difficulty].icon }} {{ DIFF_META[plan.difficulty].label }}</span>
+            </div>
+            <div v-if="plan.daysPerWeek || plan.sessionDuration" class="plan-schedule text-xs text-muted">
+              <span v-if="plan.daysPerWeek">{{ plan.daysPerWeek }}×/week</span>
+              <span v-if="plan.daysPerWeek && plan.sessionDuration"> · </span>
+              <span v-if="plan.sessionDuration">{{ plan.sessionDuration === 90 ? '90+ min' : `${plan.sessionDuration} min` }}</span>
             </div>
           </div>
           <div class="plan-actions">
@@ -50,7 +56,22 @@
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDate } from '../utils/format'
-import type { WorkoutPlan } from '../types'
+import type { WorkoutPlan, PlanGoal, PlanDifficulty } from '../types'
+
+const GOAL_META: Record<PlanGoal, { label: string; icon: string }> = {
+  strength:    { label: 'Strength',    icon: '🏋️' },
+  hypertrophy: { label: 'Hypertrophy', icon: '💪' },
+  endurance:   { label: 'Endurance',   icon: '🏃' },
+  'fat-loss':  { label: 'Fat Loss',    icon: '🔥' },
+  mobility:    { label: 'Mobility',    icon: '🧘' },
+  general:     { label: 'General',     icon: '⭐' },
+}
+
+const DIFF_META: Record<PlanDifficulty, { label: string; icon: string }> = {
+  beginner:     { label: 'Beginner',     icon: '🌱' },
+  intermediate: { label: 'Intermediate', icon: '🔵' },
+  advanced:     { label: 'Advanced',     icon: '🔴' },
+}
 
 const store = useWorkoutsStore()
 const router = useRouter()
@@ -131,4 +152,23 @@ function confirmDelete(plan: WorkoutPlan) {
 .plan-actions .btn-outline { flex: 1; }
 .plan-actions .btn-ghost { color: var(--danger); }
 .plan-actions .btn-ghost:hover { background: var(--danger-dim); color: var(--danger); }
+
+.plan-schedule {
+  margin-top: 4px;
+}
+
+/* Goal badges — tinted by goal type */
+.goal-badge { background: var(--primary-dim); color: var(--primary); }
+.goal-strength    { background: rgba(251,146,60,0.12);  color: var(--warm); }
+.goal-hypertrophy { background: rgba(56,189,248,0.12);  color: var(--primary); }
+.goal-endurance   { background: rgba(167,139,250,0.12); color: var(--accent); }
+.goal-fat-loss    { background: rgba(248,113,113,0.12); color: var(--danger); }
+.goal-mobility    { background: rgba(167,139,250,0.12); color: var(--accent); }
+.goal-general     { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+
+/* Difficulty badges */
+.diff-badge { }
+.diff-beginner     { background: rgba(167,139,250,0.12); color: var(--accent); }
+.diff-intermediate { background: rgba(56,189,248,0.12);  color: var(--primary); }
+.diff-advanced     { background: rgba(251,146,60,0.12);  color: var(--warm); }
 </style>
