@@ -90,6 +90,15 @@ export interface WeightEntry {
   kg: number
 }
 
+/** User's nutrition profile for TDEE and macro calculation */
+export interface NutritionProfile {
+  heightCm:      number
+  ageYears:      number
+  sex:           'male' | 'female'
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'
+  goal:          'cut' | 'maintain' | 'bulk'
+}
+
 /** A workout session (in progress or completed) */
 export interface WorkoutLog {
   id: string

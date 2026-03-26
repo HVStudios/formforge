@@ -11,7 +11,7 @@ import {
 import { db } from '../firebase'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseName, isRunningExercise } from '../data/exercises'
-import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry, Exercise } from '../types'
+import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry, Exercise, NutritionProfile } from '../types'
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -28,7 +28,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   const activeWorkout   = ref<WorkoutLog | null>(load('ff_active', null))
   const bodyWeightLog   = ref<WeightEntry[]>(load('ff_bw', []))
   const stepEntries     = ref<StepEntry[]>(load('ff_steps', []))
-  const customExercises = ref<Exercise[]>(load('ff_custom_exercises', []))
+  const customExercises    = ref<Exercise[]>(load('ff_custom_exercises', []))
+  const nutritionProfile   = ref<NutritionProfile | null>(load('ff_nutrition', null))
 
   let _uid: string | null = null
 
@@ -48,7 +49,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   function saveActiveLocal()        { localStorage.setItem('ff_active',           JSON.stringify(activeWorkout.value)) }
   function saveBwLocal()            { localStorage.setItem('ff_bw',               JSON.stringify(bodyWeightLog.value)) }
   function saveStepsLocal()         { localStorage.setItem('ff_steps',            JSON.stringify(stepEntries.value)) }
-  function saveCustomExercisesLocal() { localStorage.setItem('ff_custom_exercises', JSON.stringify(customExercises.value)) }
+  function saveCustomExercisesLocal()  { localStorage.setItem('ff_custom_exercises', JSON.stringify(customExercises.value)) }
+  function saveNutritionLocal()        { localStorage.setItem('ff_nutrition',        JSON.stringify(nutritionProfile.value)) }
 
   // ─── Firestore helpers (fire-and-forget) ─────────
   function fsWritePlan(plan: WorkoutPlan) {
@@ -87,32 +89,39 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     if (!_uid) return
     setDoc(doc(db, 'users', _uid, 'meta', 'customExercises'), { exercises: customExercises.value }).catch(_reportSyncError)
   }
+  function fsWriteNutrition() {
+    if (!_uid) return
+    setDoc(doc(db, 'users', _uid, 'meta', 'nutrition'), { profile: nutritionProfile.value }).catch(_reportSyncError)
+  }
 
   // ─── Firestore load (called on auth) ─────────────
   async function loadFromFirestore(uid: string) {
     _uid = uid
-    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap, customSnap] = await Promise.all([
+    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap, customSnap, nutritionSnap] = await Promise.all([
       getDocs(collection(db, 'users', uid, 'plans')),
       getDocs(collection(db, 'users', uid, 'logs')),
       getDoc(doc(db, 'users', uid, 'meta', 'active')),
       getDoc(doc(db, 'users', uid, 'meta', 'bodyweight')),
       getDoc(doc(db, 'users', uid, 'meta', 'steps')),
       getDoc(doc(db, 'users', uid, 'meta', 'customExercises')),
+      getDoc(doc(db, 'users', uid, 'meta', 'nutrition')),
     ])
     plans.value = plansSnap.docs.map(d => d.data() as WorkoutPlan)
     logs.value  = logsSnap.docs
       .map(d => d.data() as WorkoutLog)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-    activeWorkout.value   = activeSnap.exists() ? (activeSnap.data() as WorkoutLog) : null
-    bodyWeightLog.value   = bwSnap.exists() ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
-    stepEntries.value     = stepsSnap.exists() ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
-    customExercises.value = customSnap.exists() ? ((customSnap.data() as { exercises: Exercise[] }).exercises ?? []) : []
+    activeWorkout.value    = activeSnap.exists()    ? (activeSnap.data() as WorkoutLog) : null
+    bodyWeightLog.value    = bwSnap.exists()        ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
+    stepEntries.value      = stepsSnap.exists()     ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
+    customExercises.value  = customSnap.exists()    ? ((customSnap.data() as { exercises: Exercise[] }).exercises ?? []) : []
+    nutritionProfile.value = nutritionSnap.exists() ? ((nutritionSnap.data() as { profile: NutritionProfile }).profile ?? null) : null
     savePlansLocal()
     saveLogsLocal()
     saveActiveLocal()
     saveBwLocal()
     saveStepsLocal()
     saveCustomExercisesLocal()
+    saveNutritionLocal()
   }
 
   /** Call when the user signs out — clears in-memory and local data. */
@@ -130,6 +139,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     localStorage.removeItem('ff_bw')
     localStorage.removeItem('ff_steps')
     localStorage.removeItem('ff_custom_exercises')
+    localStorage.removeItem('ff_nutrition')
   }
 
   // ─── Plans ──────────────────────────────────────
@@ -183,6 +193,12 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     }
     saveCustomExercisesLocal()
     fsWriteCustomExercises()
+  }
+
+  function saveNutrition(profile: NutritionProfile) {
+    nutritionProfile.value = profile
+    saveNutritionLocal()
+    fsWriteNutrition()
   }
 
   function deleteCustomExercise(id: string) {
@@ -402,5 +418,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     customExercises,
     saveCustomExercise,
     deleteCustomExercise,
+    nutritionProfile,
+    saveNutrition,
   }
 })
