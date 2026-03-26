@@ -13,11 +13,6 @@
         <label class="label">Plan Name</label>
         <input v-model="plan.name" class="input" placeholder="e.g. Push Day, Leg Day…" maxlength="60" />
       </div>
-      <div class="field">
-        <label class="label">Description (optional)</label>
-        <textarea v-model="plan.description" class="input" placeholder="What is this plan for?" rows="2" />
-      </div>
-
       <!-- Goal & schedule -->
       <div class="goal-section">
         <div class="field">
@@ -77,6 +72,16 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Notes <span class="optional-note">optional</span></label>
+        <textarea
+          v-model="plan.description"
+          class="input"
+          placeholder="Describe your goal, any injuries to work around, equipment available, or anything else…"
+          rows="3"
+        />
       </div>
 
       <div class="divider" />
@@ -424,5 +429,13 @@ function save() {
   width: 36px;
   padding: 6px 0;
   text-align: center;
+}
+
+.optional-note {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
 }
 </style>

@@ -6,21 +6,23 @@ export type Goal       = 'strength' | 'hypertrophy' | 'fat-loss' | 'general'
 export type Experience = 'beginner' | 'intermediate' | 'advanced'
 
 export interface RoutinePreferences {
-  goal:        Goal
-  daysPerWeek: number
-  experience:  Experience
-  equipment:   Equipment[]
-  duration:    30 | 45 | 60 | 90
+  goal:         Goal
+  daysPerWeek:  number
+  experience:   Experience
+  equipment:    Equipment[]
+  duration:     30 | 45 | 60 | 90
+  extraContext?: string
 }
 
 export type RunningGoal = '5k' | '10k' | 'half-marathon' | 'marathon' | 'fitness'
 export type LongestRun  = 'under5' | '5to10' | '10to20' | 'over20'
 
 export interface RunningPreferences {
-  goal:        RunningGoal
-  level:       Experience
-  daysPerWeek: number
-  longestRun:  LongestRun
+  goal:         RunningGoal
+  level:        Experience
+  daysPerWeek:  number
+  longestRun:   LongestRun
+  extraContext?: string
 }
 
 export interface GeneratedExercise {
@@ -76,7 +78,7 @@ Preferences:
 - Goal: ${prefs.goal} — ${GOAL_SETS[prefs.goal]}
 - Experience: ${prefs.experience} — ${beginnerNote}
 - Session length: ${prefs.duration} min (~${count} exercises per session)
-- Available equipment: ${prefs.equipment.join(', ')}
+- Available equipment: ${prefs.equipment.join(', ')}${prefs.extraContext?.trim() ? `\n- Additional context from user: ${prefs.extraContext.trim()}` : ''}
 
 You MUST only use exercises from this list (id | name | category | equipment):
 ${exerciseList}
@@ -165,7 +167,7 @@ export async function generateRunningPlan(prefs: RunningPreferences): Promise<Ge
 Runner profile:
 - Goal: ${RUNNING_GOAL_CONTEXT[prefs.goal]}
 - Level: ${prefs.level}
-- Longest recent run: ${LONGEST_RUN_LABELS[prefs.longestRun]}
+- Longest recent run: ${LONGEST_RUN_LABELS[prefs.longestRun]}${prefs.extraContext?.trim() ? `\n- Additional context from user: ${prefs.extraContext.trim()}` : ''}
 
 You MUST only use exercise IDs from this list (id | name | description):
 ${RUNNING_EXERCISES}
