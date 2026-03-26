@@ -89,6 +89,16 @@
             </div>
           </section>
 
+          <section class="form-section">
+            <h2 class="section-label">Anything else? <span class="optional-label">optional</span></h2>
+            <textarea
+              v-model="gymPrefs.extraContext"
+              class="context-input"
+              placeholder="e.g. I have a bad knee so avoid leg press, I want to focus on upper body, I'm training for a holiday in 8 weeks…"
+              rows="3"
+            />
+          </section>
+
           <button
             class="btn btn-primary btn-full mt-8"
             :disabled="gymPrefs.equipment.length === 0"
@@ -142,6 +152,16 @@
                 @click="runPrefs.longestRun = r.value"
               >{{ r.label }}</button>
             </div>
+          </section>
+
+          <section class="form-section">
+            <h2 class="section-label">Anything else? <span class="optional-label">optional</span></h2>
+            <textarea
+              v-model="runPrefs.extraContext"
+              class="context-input"
+              placeholder="e.g. I'm recovering from a calf strain, I prefer trail runs, my race is on 15 June…"
+              rows="3"
+            />
           </section>
 
           <button class="btn btn-primary btn-full mt-8" @click="generate">
@@ -250,11 +270,12 @@ const generatedPlans = ref<GeneratedPlan[]>([])
 
 // ── Gym preferences ───────────────────────────────────────────────────────────
 const gymPrefs = reactive<RoutinePreferences>({
-  goal:        'hypertrophy',
-  daysPerWeek: 3,
-  experience:  'intermediate',
-  equipment:   ['barbell', 'dumbbell'],
-  duration:    60,
+  goal:         'hypertrophy',
+  daysPerWeek:  3,
+  experience:   'intermediate',
+  equipment:    ['barbell', 'dumbbell'],
+  duration:     60,
+  extraContext: '',
 })
 
 function toggleEquipment(eq: Equipment) {
@@ -265,10 +286,11 @@ function toggleEquipment(eq: Equipment) {
 
 // ── Running preferences ───────────────────────────────────────────────────────
 const runPrefs = reactive<RunningPreferences>({
-  goal:        'fitness',
-  level:       'beginner',
-  daysPerWeek: 3,
-  longestRun:  'under5',
+  goal:         'fitness',
+  level:        'beginner',
+  daysPerWeek:  3,
+  longestRun:   'under5',
+  extraContext: '',
 })
 
 // ── Options ───────────────────────────────────────────────────────────────────
@@ -346,6 +368,16 @@ function saveAll() {
       id:          nanoid(),
       name:        plan.name,
       description: plan.description,
+      // carry over structured metadata from the generation form
+      ...(mode.value === 'gym' ? {
+        goal:            gymPrefs.goal as import('../types').PlanGoal,
+        difficulty:      gymPrefs.experience as import('../types').PlanDifficulty,
+        daysPerWeek:     gymPrefs.daysPerWeek,
+        sessionDuration: gymPrefs.duration,
+      } : {
+        difficulty:  runPrefs.level as import('../types').PlanDifficulty,
+        daysPerWeek: runPrefs.daysPerWeek,
+      }),
       exercises:   plan.exercises.map(ex => ({
         uid:        nanoid(),
         exerciseId: ex.exerciseId,
@@ -519,6 +551,37 @@ function saveAll() {
 }
 .preview-actions .btn-outline { flex: 1; }
 .preview-actions .btn-primary { flex: 2; }
+
+/* ── Extra context textarea ─────────────────────────────────────────────── */
+.context-input {
+  width: 100%;
+  background: rgba(8, 12, 26, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 12px 14px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.context-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+.context-input::placeholder { color: var(--text-dim); }
+
+.optional-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 /* ── Utilities ──────────────────────────────────────────────────────────── */
 .mt-8  { margin-top: 8px;  }

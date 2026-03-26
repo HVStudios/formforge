@@ -1,3 +1,13 @@
+export type PlanGoal =
+  | 'strength'
+  | 'hypertrophy'
+  | 'endurance'
+  | 'fat-loss'
+  | 'mobility'
+  | 'general'
+
+export type PlanDifficulty = 'beginner' | 'intermediate' | 'advanced'
+
 export type ExerciseCategory =
   | 'chest'
   | 'back'
@@ -21,6 +31,7 @@ export interface Exercise {
   name: string
   category: ExerciseCategory
   equipment: Equipment
+  custom?: true   // present on user-created exercises
 }
 
 /** One planned set inside a workout plan */
@@ -42,6 +53,10 @@ export interface WorkoutPlan {
   id: string
   name: string
   description: string
+  goal?: PlanGoal
+  difficulty?: PlanDifficulty
+  daysPerWeek?: number    // 1–7
+  sessionDuration?: number // minutes: 30 | 45 | 60 | 90
   exercises: PlanExercise[]
   createdAt: string
   updatedAt: string
@@ -73,6 +88,15 @@ export interface StepEntry {
 export interface WeightEntry {
   date: string   // YYYY-MM-DD
   kg: number
+}
+
+/** User's nutrition profile for TDEE and macro calculation */
+export interface NutritionProfile {
+  heightCm:      number
+  ageYears:      number
+  sex:           'male' | 'female'
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'
+  goal:          'cut' | 'maintain' | 'bulk'
 }
 
 /** A workout session (in progress or completed) */

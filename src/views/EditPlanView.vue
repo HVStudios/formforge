@@ -13,9 +13,75 @@
         <label class="label">Plan Name</label>
         <input v-model="plan.name" class="input" placeholder="e.g. Push Day, Leg Day…" maxlength="60" />
       </div>
+      <!-- Goal & schedule -->
+      <div class="goal-section">
+        <div class="field">
+          <label class="label">Goal</label>
+          <div class="pill-row">
+            <button
+              v-for="g in GOALS"
+              :key="g.value"
+              class="goal-pill"
+              :class="{ active: plan.goal === g.value }"
+              @click="plan.goal = plan.goal === g.value ? undefined : g.value"
+            >
+              {{ g.icon }} {{ g.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Difficulty</label>
+          <div class="pill-row">
+            <button
+              v-for="d in DIFFICULTIES"
+              :key="d.value"
+              class="goal-pill"
+              :class="{ active: plan.difficulty === d.value, [`diff-${d.value}`]: plan.difficulty === d.value }"
+              @click="plan.difficulty = plan.difficulty === d.value ? undefined : d.value"
+            >
+              {{ d.icon }} {{ d.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="schedule-row">
+          <div class="field" style="flex:1">
+            <label class="label">Days / week</label>
+            <div class="pill-row">
+              <button
+                v-for="n in [1,2,3,4,5,6,7]"
+                :key="n"
+                class="goal-pill num-pill"
+                :class="{ active: plan.daysPerWeek === n }"
+                @click="plan.daysPerWeek = plan.daysPerWeek === n ? undefined : n"
+              >{{ n }}</button>
+            </div>
+          </div>
+
+          <div class="field" style="flex:1">
+            <label class="label">Session length</label>
+            <div class="pill-row">
+              <button
+                v-for="d in DURATIONS"
+                :key="d.value"
+                class="goal-pill"
+                :class="{ active: plan.sessionDuration === d.value }"
+                @click="plan.sessionDuration = plan.sessionDuration === d.value ? undefined : d.value"
+              >{{ d.label }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="field">
-        <label class="label">Description (optional)</label>
-        <textarea v-model="plan.description" class="input" placeholder="What is this plan for?" rows="2" />
+        <label class="label">Notes <span class="optional-note">optional</span></label>
+        <textarea
+          v-model="plan.description"
+          class="input"
+          placeholder="Describe your goal, any injuries to work around, equipment available, or anything else…"
+          rows="3"
+        />
       </div>
 
       <div class="divider" />
@@ -118,7 +184,29 @@ import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseById, getExerciseName, CATEGORY_LABELS } from '../data/exercises'
-import type { Exercise, PlanExercise, PlannedSet } from '../types'
+import type { Exercise, PlanExercise, PlannedSet, PlanGoal, PlanDifficulty } from '../types'
+
+const GOALS: { value: PlanGoal; label: string; icon: string }[] = [
+  { value: 'strength',    label: 'Strength',    icon: '🏋️' },
+  { value: 'hypertrophy', label: 'Hypertrophy', icon: '💪' },
+  { value: 'endurance',   label: 'Endurance',   icon: '🏃' },
+  { value: 'fat-loss',    label: 'Fat Loss',    icon: '🔥' },
+  { value: 'mobility',    label: 'Mobility',    icon: '🧘' },
+  { value: 'general',     label: 'General',     icon: '⭐' },
+]
+
+const DIFFICULTIES: { value: PlanDifficulty; label: string; icon: string }[] = [
+  { value: 'beginner',     label: 'Beginner',     icon: '🌱' },
+  { value: 'intermediate', label: 'Intermediate', icon: '🔵' },
+  { value: 'advanced',     label: 'Advanced',     icon: '🔴' },
+]
+
+const DURATIONS = [
+  { value: 30,  label: '30m' },
+  { value: 45,  label: '45m' },
+  { value: 60,  label: '60m' },
+  { value: 90,  label: '90m+' },
+]
 import ExerciseSelector from '../components/ExerciseSelector.vue'
 
 const props = defineProps<{ id?: string }>()
@@ -290,5 +378,64 @@ function save() {
   color: var(--primary);
   padding: 4px 8px;
   font-size: 0.875rem;
+}
+
+/* ── Goal & schedule section ─────────────────────── */
+.goal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.schedule-row {
+  display: flex;
+  gap: 16px;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.goal-pill {
+  padding: 6px 13px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.goal-pill:active { transform: scale(0.96); }
+
+.goal-pill.active {
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Difficulty colours override primary when active */
+.goal-pill.diff-beginner.active    { background: rgba(167,139,250,0.12); border-color: var(--accent); color: var(--accent); }
+.goal-pill.diff-intermediate.active { background: rgba(56,189,248,0.12);  border-color: var(--primary); color: var(--primary); }
+.goal-pill.diff-advanced.active    { background: rgba(251,146,60,0.12);  border-color: var(--warm);   color: var(--warm); }
+
+.num-pill {
+  width: 36px;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.optional-note {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
 }
 </style>
