@@ -123,6 +123,21 @@
 
       <StepsSheet v-model="showStepsSheet" />
 
+      <!-- Nutrition tip card -->
+      <div class="tip-card card">
+        <div class="tip-header">
+          <span class="tip-icon">🥗</span>
+          <span class="tip-title">Nutrition Tips</span>
+          <span class="tip-badge" :class="`tip-badge--${tipData.theme}`">{{ tipData.label }}</span>
+        </div>
+        <ul class="tip-list">
+          <li v-for="tip in tipData.tips" :key="tip" class="tip-item">{{ tip }}</li>
+        </ul>
+        <RouterLink v-if="!store.nutritionProfile" to="/profile" class="tip-setup-link text-xs text-primary">
+          Set up nutrition targets →
+        </RouterLink>
+      </div>
+
       <!-- Body weight sheet -->
       <Teleport to="body">
         <Transition name="fade">
@@ -310,6 +325,65 @@ const greeting = computed(() => {
   if (h < 12) return 'Good morning'
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
+})
+
+// ── Nutrition tip card ────────────────────────────────────────────────────────
+type TipSet = { label: string; theme: string; tips: string[] }
+
+const TIP_SETS: Record<string, TipSet> = {
+  cut: {
+    label: 'Cutting',
+    theme: 'warm',
+    tips: [
+      'Aim for a 300–500 kcal deficit — larger cuts risk muscle loss.',
+      'Keep protein high (≥2g/kg) to preserve muscle while losing fat.',
+      'Fill your plate with vegetables — high volume, low calories.',
+    ],
+  },
+  bulk: {
+    label: 'Building',
+    theme: 'accent',
+    tips: [
+      'A 200–400 kcal surplus is plenty — more just adds excess fat.',
+      'Eat protein every 3–4 hours to maximise muscle protein synthesis.',
+      'Prioritise carbs around workouts to fuel performance and recovery.',
+    ],
+  },
+  maintain: {
+    label: 'Maintaining',
+    theme: 'primary',
+    tips: [
+      'Match carb intake to your activity level — more on training days.',
+      'Keep protein at 1.6–1.8g/kg to support ongoing muscle repair.',
+      'Weigh yourself weekly at the same time for consistent tracking.',
+    ],
+  },
+}
+
+const GENERAL_TIPS: TipSet = {
+  label: 'General',
+  theme: 'dim',
+  tips: [
+    'Aim for at least 1.6g of protein per kg of bodyweight daily.',
+    'Stay hydrated — even mild dehydration impairs performance.',
+    'Eat within 1–2 hours of training to support recovery.',
+  ],
+}
+
+const tipData = computed<TipSet>(() => {
+  const np = store.nutritionProfile
+  let goal: string | null = np?.goal ?? null
+
+  if (!goal) {
+    // Fall back to the most recently updated plan's goal
+    const latest = [...store.plans].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
+    const planGoal = latest?.goal
+    if (planGoal === 'fat-loss') goal = 'cut'
+    else if (planGoal === 'strength' || planGoal === 'hypertrophy') goal = 'bulk'
+    else if (planGoal === 'endurance' || planGoal === 'mobility' || planGoal === 'general') goal = 'maintain'
+  }
+
+  return TIP_SETS[goal ?? ''] ?? GENERAL_TIPS
 })
 
 function startPlan(plan: WorkoutPlan) {
@@ -658,4 +732,78 @@ function startPlan(plan: WorkoutPlan) {
   transition: color 0.15s;
 }
 .bw-del-btn:active { color: var(--danger); }
+
+/* ── Nutrition tip card ────────────────────────────────────────────────────── */
+.tip-card {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+}
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tip-icon { font-size: 1rem; flex-shrink: 0; }
+
+.tip-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.tip-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  border: 1.5px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tip-badge--warm    { color: var(--warm);    background: rgba(251,146,60,0.1);   border-color: rgba(251,146,60,0.35); }
+.tip-badge--accent  { color: var(--accent);  background: rgba(167,139,250,0.1);  border-color: rgba(167,139,250,0.35); }
+.tip-badge--primary { color: var(--primary); background: var(--primary-dim);     border-color: rgba(56,189,248,0.35); }
+.tip-badge--dim     { color: var(--text-dim); background: var(--surface);        border-color: var(--border); }
+
+.tip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tip-item {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.45;
+}
+
+.tip-item::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--primary);
+  font-size: 1rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.tip-setup-link {
+  display: inline-block;
+  margin-top: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.tip-setup-link:hover { opacity: 0.8; }
 </style>
