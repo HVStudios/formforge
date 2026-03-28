@@ -26,35 +26,78 @@
         </div>
       </div>
 
-      <!-- ── Calendar heatmap ──────────────────────────────────────── -->
+      <!-- ── Monthly calendar ───────────────────────────────────────── -->
       <div v-if="store.logs.length > 0" class="chart-card card">
-        <div class="chart-title">{{ heatmap.year }} activity</div>
-        <div class="heatmap-wrap" ref="heatmapEl">
-          <!-- Month labels -->
-          <div class="heatmap-months" :style="{ width: heatmapWidth + 'px' }">
-            <span
-              v-for="m in heatmap.monthStarts" :key="m.month"
-              class="month-tag"
-              :style="{ left: m.weekIdx * CELL_STEP + 'px' }"
-            >{{ m.month }}</span>
+        <div class="cal-header">
+          <button class="cal-nav" @click="calPrev">‹</button>
+          <span class="chart-title" style="margin:0">{{ calTitle }}</span>
+          <button class="cal-nav" @click="calNext" :disabled="!canGoNext">›</button>
+        </div>
+        <div class="cal-grid">
+          <div v-for="d in DOW_LABELS" :key="d" class="cal-dow">{{ d }}</div>
+          <div
+            v-for="cell in calCells" :key="cell.key"
+            class="cal-cell"
+            :class="{
+              'cal-has-workout': cell.count > 0,
+              'cal-today': cell.isToday,
+              'cal-selected': cell.date === selectedDate,
+              'cal-filler': !cell.day,
+            }"
+            @click="cell.day && toggleDayFilter(cell.date)"
+          >
+            <span v-if="cell.day" class="cal-day-num">{{ cell.day }}</span>
+            <span v-if="cell.count > 0" class="cal-pip" :data-count="cell.count > 1 ? cell.count : ''"></span>
           </div>
-          <!-- Day grid -->
-          <div class="heatmap-grid" :style="{ width: heatmapWidth + 'px' }">
-            <div v-for="(week, wi) in heatmap.weeks" :key="wi" class="heatmap-col">
-              <div
-                v-for="(day, di) in week" :key="di"
-                class="heatmap-cell"
-                :class="heatClass(day.count, !!day.date)"
-                :title="day.date ? `${day.date}: ${day.count} workout${day.count !== 1 ? 's' : ''}` : ''"
-              />
+        </div>
+        <div v-if="selectedDate" class="cal-filter-bar">
+          <span class="text-xs text-muted">{{ formatDate(selectedDate) }}</span>
+          <button class="cal-clear" @click="selectedDate = null">Show all</button>
+        </div>
+      </div>
+
+      <!-- ── Muscle group volume ─────────────────────────────────────── -->
+      <div v-if="muscleVolume.length > 0" class="chart-card card">
+        <div class="chart-title">Volume this week</div>
+        <div class="muscle-list">
+          <div v-for="mg in muscleVolume" :key="mg.category" class="muscle-row">
+            <span class="muscle-label">{{ mg.label }}</span>
+            <div class="muscle-bar-wrap">
+              <div class="muscle-bar-fill" :style="{ width: mg.pct + '%', background: mg.color }" />
             </div>
+            <span class="muscle-sets">{{ mg.sets }}s</span>
           </div>
-          <!-- Weekday labels (Mon / Wed / Fri) -->
-          <div class="heatmap-days">
-            <span style="grid-row:1">M</span>
-            <span style="grid-row:3">W</span>
-            <span style="grid-row:5">F</span>
-          </div>
+        </div>
+      </div>
+
+      <!-- ── Strength trends ─────────────────────────────────────────── -->
+      <div v-if="strengthTrends.length > 0" class="chart-card card">
+        <div class="chart-title">Strength trends</div>
+        <div class="trend-list">
+          <RouterLink
+            v-for="t in strengthTrends" :key="t.exerciseId"
+            :to="{ name: 'exercise-history', params: { id: t.exerciseId } }"
+            class="trend-row"
+          >
+            <div class="trend-info">
+              <span class="trend-name">{{ t.name }}</span>
+              <span
+                class="trend-change text-xs"
+                :class="t.change > 0 ? 'trend-up' : t.change < 0 ? 'trend-down' : 'text-muted'"
+              >{{ t.change > 0 ? '+' : '' }}{{ t.change }}%</span>
+            </div>
+            <svg viewBox="0 0 80 30" class="trend-svg" preserveAspectRatio="none">
+              <polyline
+                :points="t.sparkline"
+                fill="none"
+                stroke="var(--accent)"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="pr-chevron">›</span>
+          </RouterLink>
         </div>
       </div>
 
@@ -98,20 +141,6 @@
         </div>
       </div>
 
-      <!-- ── Top exercises ─────────────────────────────────────────── -->
-      <div v-if="topExercises.length > 0" class="chart-card card">
-        <div class="chart-title">Most logged exercises</div>
-        <div class="top-list">
-          <div v-for="ex in topExercises" :key="ex.name" class="top-row">
-            <span class="top-name">{{ ex.name }}</span>
-            <div class="top-bar-wrap">
-              <div class="top-bar-fill" :style="{ width: ex.pct + '%' }" />
-            </div>
-            <span class="top-count">{{ ex.count }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- ── Body weight chart ────────────────────────────────────── -->
       <div v-if="bwChart" class="chart-card card">
         <div class="chart-title">Body weight trend</div>
@@ -151,6 +180,20 @@
         </div>
       </div>
 
+      <!-- ── Top exercises ─────────────────────────────────────────── -->
+      <div v-if="topExercises.length > 0" class="chart-card card">
+        <div class="chart-title">Most logged exercises</div>
+        <div class="top-list">
+          <div v-for="ex in topExercises" :key="ex.name" class="top-row">
+            <span class="top-name">{{ ex.name }}</span>
+            <div class="top-bar-wrap">
+              <div class="top-bar-fill" :style="{ width: ex.pct + '%' }" />
+            </div>
+            <span class="top-count">{{ ex.count }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Log list ──────────────────────────────────────────────── -->
       <div v-if="store.logs.length === 0" class="empty-state">
         <div class="empty-icon">📈</div>
@@ -182,25 +225,38 @@
             </RouterLink>
           </div>
         </div>
+        <div v-if="groupedLogs.length === 0 && selectedDate" class="empty-state" style="padding: 24px 0">
+          <p class="text-muted">No workouts on this day.</p>
+        </div>
       </div>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
-import { getExerciseName } from '../data/exercises'
+import { getExerciseName, getExerciseById, isRunningExercise } from '../data/exercises'
 import type { WorkoutLog } from '../types'
 
 const store = useWorkoutsStore()
 
-// ── Group logs by month ──────────────────────────────────────────────────────
+// ── Group logs by month (respects selectedDate filter) ───────────────────────
+const selectedDate = ref<string | null>(null)
+
+function toggleDayFilter(date: string) {
+  selectedDate.value = selectedDate.value === date ? null : date
+}
+
 const groupedLogs = computed(() => {
+  const source = selectedDate.value
+    ? store.logs.filter(l => l.startedAt.slice(0, 10) === selectedDate.value)
+    : store.logs
+
   const groups: { label: string; logs: WorkoutLog[] }[] = []
   const map = new Map<string, WorkoutLog[]>()
-  for (const log of store.logs) {
+  for (const log of source) {
     const d = new Date(log.startedAt)
     const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     if (!map.has(label)) map.set(label, [])
@@ -261,82 +317,143 @@ const bestStreak = computed(() => {
   return best
 })
 
-// ── Calendar heatmap ─────────────────────────────────────────────────────────
-const CELL_SIZE = 11
-const CELL_GAP  = 2
-const CELL_STEP = CELL_SIZE + CELL_GAP
-const DAY_LABEL_W = 14
+// ── Monthly calendar ──────────────────────────────────────────────────────────
+const DOW_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-const heatmapEl = ref<HTMLElement | null>(null)
+const calYear  = ref(new Date().getFullYear())
+const calMonth = ref(new Date().getMonth()) // 0-11
 
-const heatmap = computed(() => {
-  const year = new Date().getFullYear()
-  const counts = new Map<string, number>()
-  for (const log of store.logs) {
-    const key = log.startedAt.slice(0, 10)
-    if (key.startsWith(year.toString())) counts.set(key, (counts.get(key) ?? 0) + 1)
-  }
-
-  const jan1 = new Date(year, 0, 1)
-  const dec31 = new Date(year, 11, 31)
-  const startDow = (jan1.getDay() + 6) % 7  // Mon=0
-
-  type Cell = { date: string; count: number }
-  const weeks: Cell[][] = []
-  let week: Cell[] = Array.from({ length: startDow }, () => ({ date: '', count: 0 }))
-
-  const d = new Date(jan1)
-  while (d <= dec31) {
-    const key = d.toISOString().slice(0, 10)
-    week.push({ date: key, count: counts.get(key) ?? 0 })
-    if (week.length === 7) { weeks.push([...week]); week = [] }
-    d.setDate(d.getDate() + 1)
-  }
-  if (week.length) {
-    while (week.length < 7) week.push({ date: '', count: 0 })
-    weeks.push(week)
-  }
-
-  // Month labels: first week each month appears
-  const monthStarts: { month: string; weekIdx: number }[] = []
-  const seen = new Set<number>()
-  weeks.forEach((wk, wi) => {
-    for (const day of wk) {
-      if (!day.date) continue
-      const m = parseInt(day.date.slice(5, 7))
-      if (!seen.has(m)) {
-        seen.add(m)
-        monthStarts.push({
-          month: new Date(day.date).toLocaleDateString('en-US', { month: 'short' }),
-          weekIdx: wi,
-        })
-      }
-    }
-  })
-
-  return { weeks, monthStarts, year }
-})
-
-const heatmapWidth = computed(() =>
-  DAY_LABEL_W + heatmap.value.weeks.length * CELL_STEP
+const calTitle = computed(() =>
+  new Date(calYear.value, calMonth.value).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 )
 
-function heatClass(count: number, isYear: boolean) {
-  if (!isYear) return 'heat-empty'
-  if (count === 0) return 'heat-0'
-  if (count === 1) return 'heat-1'
-  if (count === 2) return 'heat-2'
-  return 'heat-3'
+const canGoNext = computed(() => {
+  const now = new Date()
+  return calYear.value < now.getFullYear() || calMonth.value < now.getMonth()
+})
+
+function calPrev() {
+  if (calMonth.value === 0) { calMonth.value = 11; calYear.value-- }
+  else calMonth.value--
 }
 
-// Scroll to current month on mount
-onMounted(() => {
-  if (!heatmapEl.value) return
-  const today = new Date()
-  const jan1 = new Date(today.getFullYear(), 0, 1)
-  const weeksSinceJan = Math.floor((today.getTime() - jan1.getTime()) / (7 * 86400000))
-  const scrollTo = Math.max(0, (weeksSinceJan - 3) * CELL_STEP + DAY_LABEL_W)
-  heatmapEl.value.scrollLeft = scrollTo
+function calNext() {
+  if (!canGoNext.value) return
+  if (calMonth.value === 11) { calMonth.value = 0; calYear.value++ }
+  else calMonth.value++
+}
+
+const calCells = computed(() => {
+  const year = calYear.value, month = calMonth.value
+  const firstDay  = new Date(year, month, 1)
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const startDow  = (firstDay.getDay() + 6) % 7 // Mon = 0
+
+  const mm = String(month + 1).padStart(2, '0')
+  const counts = new Map<string, number>()
+  for (const log of store.logs) {
+    const d = log.startedAt.slice(0, 10)
+    if (d.startsWith(`${year}-${mm}`)) counts.set(d, (counts.get(d) ?? 0) + 1)
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  type Cell = { key: string; day: number | null; date: string; count: number; isToday: boolean }
+  const cells: Cell[] = []
+
+  for (let i = 0; i < startDow; i++) {
+    cells.push({ key: `f${i}`, day: null, date: '', count: 0, isToday: false })
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${year}-${mm}-${String(d).padStart(2, '0')}`
+    cells.push({ key: date, day: d, date, count: counts.get(date) ?? 0, isToday: date === today })
+  }
+  return cells
+})
+
+// ── Muscle group volume (this week) ──────────────────────────────────────────
+const CATEGORY_META: Record<string, { label: string; color: string }> = {
+  chest:     { label: 'Chest',     color: '#ef4444' },
+  back:      { label: 'Back',      color: '#3b82f6' },
+  legs:      { label: 'Legs',      color: '#22c55e' },
+  shoulders: { label: 'Shoulders', color: '#f59e0b' },
+  arms:      { label: 'Arms',      color: '#a78bfa' },
+  core:      { label: 'Core',      color: '#06b6d4' },
+  cardio:    { label: 'Cardio',    color: '#f97316' },
+  other:     { label: 'Other',     color: '#6b7280' },
+}
+
+const muscleVolume = computed(() => {
+  const now = new Date()
+  const dayOfWeek = (now.getDay() + 6) % 7
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - dayOfWeek)
+  weekStart.setHours(0, 0, 0, 0)
+
+  const counts = new Map<string, number>()
+  for (const log of store.logs) {
+    if (new Date(log.startedAt) < weekStart) continue
+    for (const ex of log.exercises) {
+      const cat = getExerciseById(ex.exerciseId)?.category ?? 'other'
+      const completedSets = ex.sets.filter(s => s.completed).length
+      if (completedSets > 0) counts.set(cat, (counts.get(cat) ?? 0) + completedSets)
+    }
+  }
+
+  if (counts.size === 0) return []
+  const max = Math.max(...counts.values())
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, sets]) => ({
+      category: cat,
+      label: CATEGORY_META[cat]?.label ?? cat,
+      color: CATEGORY_META[cat]?.color ?? '#6b7280',
+      sets,
+      pct: Math.round((sets / max) * 100),
+    }))
+})
+
+// ── Strength trends (top exercises with sparklines) ───────────────────────────
+const strengthTrends = computed(() => {
+  // Build per-exercise session history (chronological)
+  const exMap = new Map<string, { name: string; e1rms: number[] }>()
+
+  for (const log of [...store.logs].reverse()) {
+    for (const ex of log.exercises) {
+      if (isRunningExercise(ex.exerciseId)) continue
+      let best = 0
+      for (const set of ex.sets) {
+        if (!set.completed || !set.weight || !set.reps) continue
+        const calc = store.e1rm(set.weight, set.reps)
+        if (calc > best) best = calc
+      }
+      if (best > 0) {
+        if (!exMap.has(ex.exerciseId)) exMap.set(ex.exerciseId, { name: ex.exerciseName, e1rms: [] })
+        exMap.get(ex.exerciseId)!.e1rms.push(best)
+      }
+    }
+  }
+
+  return [...exMap.entries()]
+    .filter(([, v]) => v.e1rms.length >= 3)
+    .sort((a, b) => b[1].e1rms.length - a[1].e1rms.length)
+    .slice(0, 5)
+    .map(([exerciseId, { name, e1rms }]) => {
+      const pts = e1rms.slice(-10)
+      const n   = pts.length
+      const min = Math.min(...pts) * 0.95
+      const max = Math.max(...pts) * 1.05
+      const range = max - min || 1
+      const W = 80, H = 30
+
+      const sparkline = pts.map((v, i) => {
+        const x = (i / (n - 1)) * W
+        const y = H - ((v - min) / range) * H
+        return `${x.toFixed(1)},${y.toFixed(1)}`
+      }).join(' ')
+
+      const change = Math.round(((pts[n - 1] - pts[0]) / pts[0]) * 100)
+      return { exerciseId, name, sparkline, change }
+    })
 })
 
 // ── Weekly bar chart ─────────────────────────────────────────────────────────
@@ -447,64 +564,199 @@ const topExercises = computed(() => {
   margin-bottom: 14px;
 }
 
-/* ── Calendar heatmap ─────────────────────────────────────────────────────── */
-.heatmap-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+/* ── Monthly calendar ─────────────────────────────────────────────────────── */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cal-nav {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.cal-nav:hover:not(:disabled) { background: var(--border); color: var(--text); }
+.cal-nav:disabled { opacity: 0.3; cursor: default; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: default;
+  position: relative;
+  gap: 2px;
+  transition: background 0.12s;
+}
+
+.cal-cell.cal-has-workout {
+  cursor: pointer;
+}
+.cal-cell.cal-has-workout:active { background: var(--border); }
+
+.cal-filler { visibility: hidden; }
+
+.cal-day-num {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.cal-cell.cal-has-workout .cal-day-num {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.cal-cell.cal-today .cal-day-num {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.cal-cell.cal-selected {
+  background: rgba(74, 222, 128, 0.12);
+  outline: 1px solid var(--primary);
+}
+
+.cal-pip {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
   position: relative;
 }
 
-.heatmap-months {
-  position: relative;
-  height: 16px;
-  margin-left: 14px;
-  margin-bottom: 4px;
-}
-
-.month-tag {
+/* show count badge for 2+ workouts */
+.cal-pip[data-count]::after {
+  content: attr(data-count);
   position: absolute;
-  font-size: 0.6rem;
+  left: 6px;
+  top: -2px;
+  font-size: 0.5rem;
+  color: var(--primary);
+  white-space: nowrap;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.cal-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.cal-clear {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cal-clear:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── Muscle group volume ───────────────────────────────────────────────────── */
+.muscle-list { display: flex; flex-direction: column; gap: 8px; }
+
+.muscle-row { display: flex; align-items: center; gap: 10px; }
+
+.muscle-label {
+  font-size: 0.8125rem;
+  color: var(--text);
+  width: 76px;
+  flex-shrink: 0;
+}
+
+.muscle-bar-wrap {
+  flex: 1;
+  height: 7px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.muscle-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.muscle-sets {
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
-.heatmap-grid {
+/* ── Strength trends ──────────────────────────────────────────────────────── */
+.trend-list { display: flex; flex-direction: column; gap: 2px; }
+
+.trend-row {
   display: flex;
-  gap: 2px;
-  margin-left: 14px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  text-decoration: none;
+  color: var(--text);
+  border-radius: 8px;
+  transition: background 0.15s;
 }
+.trend-row:active { background: var(--card-hover); }
 
-.heatmap-col {
+.trend-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.heatmap-cell {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  flex-shrink: 0;
+.trend-name {
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.heat-empty { background: transparent; }
-.heat-0     { background: var(--border); }
-.heat-1     { background: rgba(74, 222, 128, 0.25); }
-.heat-2     { background: rgba(74, 222, 128, 0.55); }
-.heat-3     { background: var(--primary); }
+.trend-change { font-weight: 700; }
+.trend-up   { color: #4ade80; }
+.trend-down { color: #f87171; }
 
-.heatmap-days {
-  position: absolute;
-  left: 0;
-  top: 20px;
-  display: grid;
-  grid-template-rows: repeat(7, 13px);
-  font-size: 0.55rem;
-  color: var(--text-dim);
-  line-height: 11px;
+.trend-svg {
+  width: 80px;
+  height: 30px;
+  flex-shrink: 0;
 }
 
 /* ── Bar chart ────────────────────────────────────────────────────────────── */
@@ -546,7 +798,6 @@ const topExercises = computed(() => {
 
 .pr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .pr-e1rm  { font-size: 0.9375rem; font-weight: 700; color: #fbbf24; }
-.pr-e1rm-label { }
 
 .pr-chevron { font-size: 1.1rem; color: var(--text-dim); }
 
