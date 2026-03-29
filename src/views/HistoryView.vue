@@ -27,7 +27,7 @@
       </div>
 
       <!-- ── Monthly calendar ───────────────────────────────────────── -->
-      <div v-if="store.logs.length > 0" class="chart-card card">
+      <div v-if="store.logs.length > 0" class="chart-card card reveal reveal-d1">
         <div class="cal-header">
           <button class="cal-nav" @click="calPrev">‹</button>
           <span class="chart-title" style="margin:0">{{ calTitle }}</span>
@@ -57,10 +57,14 @@
       </div>
 
       <!-- ── Muscle group volume ─────────────────────────────────────── -->
-      <div v-if="muscleVolume.length > 0" class="chart-card card">
+      <div v-if="muscleVolume.length > 0" class="chart-card card reveal reveal-d2">
         <div class="chart-title">Volume this week</div>
         <div class="muscle-list">
-          <div v-for="mg in muscleVolume" :key="mg.category" class="muscle-row">
+          <div
+            v-for="(mg, i) in muscleVolume" :key="mg.category"
+            class="muscle-row"
+            :style="{ animationDelay: (i * 0.055) + 's' }"
+          >
             <span class="muscle-label">{{ mg.label }}</span>
             <div class="muscle-bar-wrap">
               <div class="muscle-bar-fill" :style="{ width: mg.pct + '%', background: mg.color }" />
@@ -71,7 +75,7 @@
       </div>
 
       <!-- ── Strength trends ─────────────────────────────────────────── -->
-      <div v-if="strengthTrends.length > 0" class="chart-card card">
+      <div v-if="strengthTrends.length > 0" class="chart-card card reveal reveal-d3">
         <div class="chart-title">Strength trends</div>
         <div class="trend-list">
           <RouterLink
@@ -102,7 +106,7 @@
       </div>
 
       <!-- ── Weekly activity chart ─────────────────────────────────── -->
-      <div v-if="store.logs.length > 0" class="chart-card card">
+      <div v-if="store.logs.length > 0" class="chart-card card reveal reveal-d4">
         <div class="chart-title">Workouts per week</div>
         <div class="bar-chart" aria-hidden="true">
           <div v-for="(bar, i) in weeklyBars" :key="i" class="bar-col">
@@ -542,6 +546,16 @@ const topExercises = computed(() => {
 </script>
 
 <style scoped>
+/* ── Entrance animations ──────────────────────────────────────────────────── */
+@keyframes cell-pop {
+  from { opacity: 0; transform: scale(0.55); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
 /* ── Stats strip ──────────────────────────────────────────────────────────── */
 .stats-strip {
   display: grid;
@@ -617,6 +631,7 @@ const topExercises = computed(() => {
 
 .cal-cell.cal-has-workout {
   cursor: pointer;
+  animation: cell-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 .cal-cell.cal-has-workout:active { background: var(--border); }
 
@@ -689,7 +704,12 @@ const topExercises = computed(() => {
 /* ── Muscle group volume ───────────────────────────────────────────────────── */
 .muscle-list { display: flex; flex-direction: column; gap: 8px; }
 
-.muscle-row { display: flex; align-items: center; gap: 10px; }
+.muscle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: reveal-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
 .muscle-label {
   font-size: 0.8125rem;
@@ -757,6 +777,12 @@ const topExercises = computed(() => {
   width: 80px;
   height: 30px;
   flex-shrink: 0;
+}
+
+.trend-svg polyline {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: draw-line 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ── Bar chart ────────────────────────────────────────────────────────────── */

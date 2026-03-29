@@ -72,7 +72,7 @@
       </Transition>
 
       <!-- Stats row -->
-      <div class="stats-row">
+      <div class="stats-row reveal">
         <div class="stat-card card">
           <span class="stat-value">{{ store.weeklyCount }}</span>
           <span class="stat-label">This week</span>
@@ -88,7 +88,7 @@
       </div>
 
       <!-- Body weight widget -->
-      <div class="bw-widget card" @click="openBwSheet">
+      <div class="bw-widget card reveal reveal-d1" @click="openBwSheet">
         <div class="bw-left">
           <span class="bw-label text-xs text-muted">Body Weight</span>
           <div class="bw-main">
@@ -108,7 +108,7 @@
       </div>
 
       <!-- Steps widget -->
-      <div class="steps-widget card" @click="showStepsSheet = true">
+      <div class="steps-widget card reveal reveal-d2" @click="showStepsSheet = true">
         <div class="steps-left">
           <span class="steps-label text-xs text-muted">Today's Steps</span>
           <div class="steps-main">
@@ -124,7 +124,7 @@
       <StepsSheet v-model="showStepsSheet" />
 
       <!-- Nutrition tip card -->
-      <div class="tip-card card">
+      <div class="tip-card card reveal reveal-d3">
         <div class="tip-header">
           <span class="tip-icon">🥗</span>
           <span class="tip-title">Nutrition Tips</span>
@@ -196,8 +196,8 @@
       </Teleport>
 
       <!-- Quick actions -->
-      <h2 class="section-title">Quick Start</h2>
-      <div class="quick-actions">
+      <h2 class="section-title reveal reveal-d4">Quick Start</h2>
+      <div class="quick-actions reveal reveal-d4">
         <RouterLink
           v-for="plan in store.plans.slice(0, 3)"
           :key="plan.id"
@@ -218,7 +218,7 @@
       </div>
 
       <!-- Recent workouts -->
-      <div v-if="store.recentLogs.length > 0">
+      <div v-if="store.recentLogs.length > 0" class="reveal reveal-d5">
         <div class="flex items-center justify-between section-title">
           <h2>Recent</h2>
           <RouterLink to="/history" class="text-sm text-primary" style="text-decoration:none">See all →</RouterLink>

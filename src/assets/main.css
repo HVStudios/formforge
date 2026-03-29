@@ -310,16 +310,17 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
 
 /* ─── Transitions ───────────────────────────────── */
 
-/* Page-level crossfade */
-.page-enter-active { transition: opacity 0.18s ease; }
+/* Page-level — fade + subtle upward drift */
+.page-enter-active { transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
 .page-leave-active {
-  transition: opacity 0.18s ease;
+  transition: opacity 0.15s ease;
   position: absolute;
   top: 0; left: 0; right: 0;
   pointer-events: none;
   z-index: 1;
 }
-.page-enter-from, .page-leave-to { opacity: 0; }
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-to   { opacity: 0; }
 
 /* Generic fade */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
@@ -331,6 +332,28 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
 .slide-up-enter-from, .slide-up-leave-to {
   transform: translateY(24px);
   opacity: 0;
+}
+
+/* ─── Reveal entrance ───────────────────────────── */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal    { animation: reveal-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.reveal-d1 { animation-delay: 0.06s; }
+.reveal-d2 { animation-delay: 0.12s; }
+.reveal-d3 { animation-delay: 0.18s; }
+.reveal-d4 { animation-delay: 0.24s; }
+.reveal-d5 { animation-delay: 0.30s; }
+
+/* ─── Reduced motion ────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-d1, .reveal-d2, .reveal-d3, .reveal-d4, .reveal-d5 {
+    animation: none;
+  }
+  .page-enter-active { transition: opacity 0.1s; }
+  .page-enter-from   { transform: none; }
 }
 
 /* ─── Modal/Sheet overlay ───────────────────────── */

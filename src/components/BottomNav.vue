@@ -133,6 +133,21 @@ const gStore = useGamificationStore()
 .nav-icon svg {
   width: 22px;
   height: 22px;
+  transition: transform 0.15s;
+}
+
+.nav-item:active .nav-icon svg {
+  transform: scale(0.84);
+}
+
+@keyframes nav-icon-pop {
+  0%   { transform: scale(0.78); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.nav-item.active .nav-icon svg {
+  animation: nav-icon-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nav-label {
