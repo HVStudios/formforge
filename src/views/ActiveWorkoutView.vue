@@ -87,21 +87,24 @@
               <div class="divider" />
               <div class="sets-header">
                 <span class="set-col-hdr">Set</span>
-                <span class="set-col-hdr">Weight (kg)</span>
+                <span class="set-col-hdr">kg</span>
                 <span class="set-col-hdr">Reps</span>
                 <span style="width:38px" />
-                <span style="width:28px" />
+                <span style="width:26px" />
               </div>
               <SetRow
                 v-for="(set, si) in ex.sets"
                 :key="si"
+                :ref="(el) => setRowRef(el, exIdx, si)"
                 :set="set"
                 :number="si + 1"
                 :canDelete="ex.sets.length > 1"
                 @update:set="updateSet(exIdx, si, $event)"
                 @delete="removeSet(exIdx, si)"
               />
-              <button class="btn btn-ghost btn-sm add-set-btn" @click="addSet(exIdx)">+ Set</button>
+              <button class="btn btn-ghost btn-sm add-set-btn" @click="addSet(exIdx)">
+                {{ canRepeat(ex) ? '＋ Repeat last set' : '＋ Add set' }}
+              </button>
             </div>
           </Transition>
         </div>
@@ -144,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDuration } from '../utils/format'
@@ -261,18 +264,18 @@ function completedCount(ex: LoggedExercise) {
   return ex.sets.filter(s => s.completed).length
 }
 
+function canRepeat(ex: LoggedExercise): boolean {
+  const last = ex.sets.at(-1)
+  return !!last && (last.weight !== null || last.reps !== null)
+}
+
 // Mutations
 function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
   const wasCompleted = workout.exercises[exIdx].sets[setIdx].completed
   workout.exercises[exIdx].sets[setIdx] = newSet
-  if (newSet.completed && !wasCompleted && restEnabled.value) startRest()
-  // Auto-expand next exercise when current is done
-  if (isExerciseDone(workout.exercises[exIdx])) {
-    const next = exIdx + 1
-    if (next < workout.exercises.length) {
-      expandedMap[exIdx] = false
-      expandedMap[next] = true
-    }
+  if (newSet.completed && !wasCompleted) {
+    if (restEnabled.value) startRest()
+    focusNextSet(exIdx, setIdx)
   }
 }
 
@@ -288,6 +291,35 @@ function addSet(exIdx: number) {
     weight: last?.weight ?? null,
     completed: false,
   })
+}
+
+// ── SetRow refs for auto-focus ────────────────────────────────────────────────
+const setRowRefs = ref<Record<string, InstanceType<typeof SetRow>>>({})
+
+function setRowRef(el: unknown, exIdx: number, setIdx: number) {
+  if (el) setRowRefs.value[`${exIdx}-${setIdx}`] = el as InstanceType<typeof SetRow>
+}
+
+function focusNextSet(exIdx: number, setIdx: number) {
+  const ex = workout.exercises[exIdx]
+  // Next set in same exercise
+  for (let si = setIdx + 1; si < ex.sets.length; si++) {
+    if (!ex.sets[si].completed) {
+      nextTick(() => setRowRefs.value[`${exIdx}-${si}`]?.focusWeight())
+      return
+    }
+  }
+  // First incomplete set of the next exercises
+  for (let ei = exIdx + 1; ei < workout.exercises.length; ei++) {
+    const nextEx = workout.exercises[ei]
+    const firstIncomplete = nextEx.sets.findIndex(s => !s.completed)
+    if (firstIncomplete !== -1) {
+      expandedMap[exIdx] = false
+      expandedMap[ei] = true
+      nextTick(() => setRowRefs.value[`${ei}-${firstIncomplete}`]?.focusWeight())
+      return
+    }
+  }
 }
 
 const showSelector = ref(false)

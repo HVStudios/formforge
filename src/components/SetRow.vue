@@ -1,37 +1,75 @@
 <template>
   <div class="set-row" :class="{ completed: set.completed }">
     <span class="set-num">{{ number }}</span>
-    <div class="set-inputs">
-      <div class="input-group">
-        <input
-          :value="set.weight ?? ''"
-          type="number"
-          inputmode="decimal"
-          placeholder="—"
-          class="set-input"
-          :disabled="set.completed"
-          @input="updateWeight(($event.target as HTMLInputElement).value)"
-        />
-        <span class="input-unit">kg</span>
-      </div>
-      <div class="input-group">
-        <input
-          :value="set.reps ?? ''"
-          type="number"
-          inputmode="numeric"
-          placeholder="—"
-          class="set-input"
-          :disabled="set.completed"
-          @input="updateReps(($event.target as HTMLInputElement).value)"
-        />
-        <span class="input-unit">reps</span>
-      </div>
+
+    <!-- Weight input with ±2.5 adj buttons -->
+    <div class="input-group" :class="{ focused: weightFocused }">
+      <button
+        class="adj-btn"
+        :disabled="set.completed"
+        @click.prevent="adjustWeight(-2.5)"
+        tabindex="-1"
+      >−</button>
+      <input
+        ref="weightRef"
+        :value="set.weight ?? ''"
+        type="number"
+        inputmode="decimal"
+        placeholder="—"
+        class="set-input"
+        :disabled="set.completed"
+        @focus="weightFocused = true"
+        @blur="weightFocused = false"
+        @input="updateWeight(($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="focusReps"
+      />
+      <button
+        class="adj-btn adj-plus"
+        :disabled="set.completed"
+        @click.prevent="adjustWeight(2.5)"
+        tabindex="-1"
+      >+</button>
     </div>
-    <button class="complete-btn" :class="{ done: set.completed }" @click="toggleComplete">
+
+    <!-- Reps input with ±1 adj buttons -->
+    <div class="input-group" :class="{ focused: repsFocused }">
+      <button
+        class="adj-btn"
+        :disabled="set.completed"
+        @click.prevent="adjustReps(-1)"
+        tabindex="-1"
+      >−</button>
+      <input
+        ref="repsRef"
+        :value="set.reps ?? ''"
+        type="number"
+        inputmode="numeric"
+        placeholder="—"
+        class="set-input"
+        :disabled="set.completed"
+        @focus="repsFocused = true"
+        @blur="repsFocused = false"
+        @input="updateReps(($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="complete"
+      />
+      <button
+        class="adj-btn adj-plus"
+        :disabled="set.completed"
+        @click.prevent="adjustReps(1)"
+        tabindex="-1"
+      >+</button>
+    </div>
+
+    <button
+      class="complete-btn"
+      :class="{ done: set.completed }"
+      @click="toggleComplete"
+    >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
     </button>
+
     <button v-if="canDelete" class="delete-btn" @click="emit('delete')" title="Remove set">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <line x1="5" y1="12" x2="19" y2="12"/>
@@ -42,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { LoggedSet } from '../types'
 
 const props = defineProps<{
@@ -55,12 +94,47 @@ const emit = defineEmits<{
   'delete': []
 }>()
 
+const weightRef    = ref<HTMLInputElement | null>(null)
+const repsRef      = ref<HTMLInputElement | null>(null)
+const weightFocused = ref(false)
+const repsFocused   = ref(false)
+
+// ── Exposed for parent auto-focus ─────────────────────────────────────────────
+function focusWeight() {
+  weightRef.value?.focus()
+  weightRef.value?.select()
+}
+function focusReps() {
+  repsRef.value?.focus()
+  repsRef.value?.select()
+}
+defineExpose({ focusWeight, focusReps })
+
+// ── Mutations ─────────────────────────────────────────────────────────────────
 function updateWeight(val: string) {
   emit('update:set', { ...props.set, weight: val === '' ? null : Number(val) })
 }
 
 function updateReps(val: string) {
   emit('update:set', { ...props.set, reps: val === '' ? null : Number(val) })
+}
+
+function adjustWeight(delta: number) {
+  const current = props.set.weight ?? 0
+  const next = Math.max(0, Math.round((current + delta) * 4) / 4) // snap to 0.25 kg
+  emit('update:set', { ...props.set, weight: next })
+}
+
+function adjustReps(delta: number) {
+  const current = props.set.reps ?? 0
+  const next = Math.max(1, current + delta)
+  emit('update:set', { ...props.set, reps: next })
+}
+
+function complete() {
+  if (!props.set.completed) {
+    emit('update:set', { ...props.set, completed: true })
+  }
 }
 
 function toggleComplete() {
@@ -72,17 +146,15 @@ function toggleComplete() {
 .set-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 7px 0;
   transition: opacity 0.2s;
 }
 
-.set-row.completed {
-  opacity: 0.5;
-}
+.set-row.completed { opacity: 0.45; }
 
 .set-num {
-  width: 22px;
+  width: 20px;
   text-align: center;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -90,24 +162,57 @@ function toggleComplete() {
   flex-shrink: 0;
 }
 
-.set-inputs {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
+/* ── Input group with adj buttons ────────────────────────────────────────── */
 .input-group {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
   transition: border-color 0.15s;
 }
-.input-group:focus-within {
+
+.input-group.focused {
   border-color: var(--primary);
+}
+
+.adj-btn {
+  width: 26px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s, background 0.12s;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.adj-btn:active:not(:disabled) {
+  background: var(--border);
+  color: var(--primary);
+}
+
+.adj-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.adj-plus {
+  border-left: 1px solid var(--border);
+}
+
+.adj-btn:first-child {
+  border-right: 1px solid var(--border);
 }
 
 .set-input {
@@ -118,28 +223,21 @@ function toggleComplete() {
   color: var(--text);
   font-size: 0.9375rem;
   font-weight: 600;
-  padding: 8px 8px;
+  padding: 9px 4px;
   outline: none;
-  text-align: right;
+  text-align: center;
   min-width: 0;
 }
-.set-input:disabled {
-  color: var(--text-muted);
-}
+
+.set-input:disabled { color: var(--text-muted); }
 .set-input::placeholder { color: var(--text-dim); }
 
-/* Hide number input spinners */
+/* Hide number spinners */
 .set-input::-webkit-inner-spin-button,
 .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 .set-input[type=number] { -moz-appearance: textfield; }
 
-.input-unit {
-  font-size: 0.6875rem;
-  color: var(--text-dim);
-  padding: 0 6px;
-  flex-shrink: 0;
-}
-
+/* ── Complete button ──────────────────────────────────────────────────────── */
 .complete-btn {
   width: 38px;
   height: 38px;
@@ -155,7 +253,7 @@ function toggleComplete() {
   transition: all 0.15s;
 }
 .complete-btn svg { width: 16px; height: 16px; }
-.complete-btn:active { transform: scale(0.9); }
+.complete-btn:active { transform: scale(0.88); }
 
 .complete-btn.done {
   background: var(--primary);
@@ -163,9 +261,10 @@ function toggleComplete() {
   color: #0d0d0d;
 }
 
+/* ── Delete button ────────────────────────────────────────────────────────── */
 .delete-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
@@ -177,11 +276,11 @@ function toggleComplete() {
   flex-shrink: 0;
   transition: color 0.15s, border-color 0.15s;
 }
-.delete-btn svg { width: 14px; height: 14px; }
+.delete-btn svg { width: 13px; height: 13px; }
 .delete-btn:active { color: var(--danger); border-color: var(--danger); }
 
 .delete-spacer {
-  width: 28px;
+  width: 26px;
   flex-shrink: 0;
 }
 </style>
