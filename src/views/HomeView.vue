@@ -1,33 +1,41 @@
 <template>
   <main class="page">
     <div class="page-inner">
-      <!-- Header -->
+      <!-- Header — design: greeting + avatar -->
       <div class="home-header">
         <div>
           <p class="greeting text-muted text-sm">{{ greeting }}</p>
-          <div class="title-row">
-            <h1>FormForge</h1>
-            <RouterLink to="/profile" class="level-badge" v-if="gStore.level >= 1">
-              <span class="level-badge-lv">Lv.{{ gStore.level }}</span>
-              <div class="level-badge-bar">
-                <div class="level-badge-fill" :style="{ width: (gStore.progress * 100).toFixed(0) + '%' }" />
-              </div>
-            </RouterLink>
-          </div>
+          <h1 class="home-title">Let's forge it</h1>
         </div>
         <div class="header-actions">
           <button class="account-btn" @click="showAccount = true" :title="authStore.email ?? 'Guest'">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="4"/>
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>
-            <span v-if="authStore.isAnonymous" class="account-badge guest">Guest</span>
+            <div class="avatar-circle">
+              {{ authStore.email ? authStore.email.charAt(0).toUpperCase() : 'G' }}
+            </div>
+            <div v-if="!authStore.isAnonymous" class="avatar-notif" />
           </button>
-          <div class="logo-mark">
-            <img src="/icon.svg" alt="FormForge" />
-          </div>
         </div>
       </div>
+
+      <!-- Level + XP hero card -->
+      <RouterLink to="/profile" class="xp-hero card" v-if="gStore.level >= 1">
+        <div class="xp-hero-glow" />
+        <div class="xp-hero-top">
+          <div>
+            <div class="xp-hero-lbl">
+              <span class="xp-hero-lbl-text">LEVEL</span>
+              <span class="xp-hero-num">{{ gStore.level }}</span>
+            </div>
+            <div class="xp-hero-sub mono">
+              <span style="color: var(--text); font-weight: 700">{{ gStore.xp.toLocaleString() }}</span>
+              / {{ gStore.xpNextLevel.toLocaleString() }} XP · {{ gStore.xpToNext.toLocaleString() }} to L{{ gStore.level + 1 }}
+            </div>
+          </div>
+        </div>
+        <div class="xp-hero-bar">
+          <div class="xp-hero-fill" :style="{ width: (gStore.progress * 100).toFixed(1) + '%' }" />
+        </div>
+      </RouterLink>
 
       <!-- Account sheet -->
       <Teleport to="body">
@@ -71,19 +79,25 @@
         </RouterLink>
       </Transition>
 
-      <!-- Stats row -->
+      <!-- Stats row — design: streak + this week + volume -->
       <div class="stats-row reveal">
-        <div class="stat-card card">
-          <span class="stat-value">{{ store.weeklyCount }}</span>
-          <span class="stat-label">This week</span>
+        <div class="stat-card stat-streak card">
+          <div class="stat-streak-glow" />
+          <div style="position:relative">
+            <div style="font-size:1.25rem">🔥</div>
+            <span class="stat-value stat-value-hot">{{ currentStreak }}</span>
+            <span class="stat-label">DAY STREAK</span>
+          </div>
         </div>
         <div class="stat-card card">
+          <span class="stat-sub">This week</span>
+          <span class="stat-value">{{ store.weeklyCount }}<span class="stat-faint">/5</span></span>
+          <span class="stat-label">workouts</span>
+        </div>
+        <div class="stat-card card">
+          <span class="stat-sub">Total</span>
           <span class="stat-value">{{ store.totalWorkouts }}</span>
-          <span class="stat-label">Total sessions</span>
-        </div>
-        <div class="stat-card card">
-          <span class="stat-value">{{ store.plans.length }}</span>
-          <span class="stat-label">Plans saved</span>
+          <span class="stat-label">sessions</span>
         </div>
       </div>
 
@@ -194,6 +208,28 @@
           </div>
         </Transition>
       </Teleport>
+
+      <!-- Today's Workout — hero card -->
+      <div v-if="store.plans.length > 0" class="reveal reveal-d4">
+        <div class="section-label-row">
+          <span class="section-label">TODAY</span>
+        </div>
+        <div class="today-hero" @click="startPlan(store.plans[0])">
+          <div class="today-hero-stripes" />
+          <div style="position:relative">
+            <div class="today-hero-tag">{{ store.plans[0].goal?.toUpperCase() || 'WORKOUT' }}</div>
+            <div class="today-hero-name">{{ store.plans[0].name }}</div>
+            <div class="today-hero-meta mono">
+              {{ store.plans[0].exercises.length }} EXERCISES
+              <span style="margin:0 6px">·</span>
+              ~{{ store.plans[0].sessionDuration || 45 }} MIN
+            </div>
+            <div class="today-hero-btn">
+              Start workout <span style="font-size:1rem; margin-left:6px">→</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Quick actions -->
       <h2 class="section-title reveal reveal-d4">Quick Start</h2>
@@ -394,6 +430,28 @@ function startPlan(plan: WorkoutPlan) {
   store.startWorkout(plan)
   router.push({ name: 'workout' })
 }
+
+// ── Current streak ───────────────────────────────────────────────────────────
+const currentStreak = computed(() => {
+  if (store.logs.length === 0) return 0
+  const days = new Set(store.logs.map(l => l.startedAt.slice(0, 10)))
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const check = (start: Date) => {
+    let streak = 0
+    const d = new Date(start)
+    while (days.has(d.toISOString().slice(0, 10))) {
+      streak++
+      d.setDate(d.getDate() - 1)
+    }
+    return streak
+  }
+  if (days.has(today.toISOString().slice(0, 10))) return check(today)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (days.has(yesterday.toISOString().slice(0, 10))) return check(yesterday)
+  return 0
+})
 </script>
 
 <style scoped>
@@ -404,45 +462,11 @@ function startPlan(plan: WorkoutPlan) {
   margin-bottom: 20px;
 }
 .greeting { margin-bottom: 2px; }
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.level-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px 3px 6px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 100px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.level-badge-lv {
-  font-size: 0.6875rem;
-  font-weight: 800;
-  color: var(--accent);
-  white-space: nowrap;
-}
-
-.level-badge-bar {
-  width: 36px;
-  height: 4px;
-  background: rgba(251, 191, 36, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.level-badge-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.5s ease;
+.home-title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .header-actions {
@@ -451,10 +475,29 @@ function startPlan(plan: WorkoutPlan) {
   gap: 10px;
 }
 
-.logo-mark img {
+.avatar-circle {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius);
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--accent), var(--flame));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.avatar-notif {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--hot);
+  border: 2px solid var(--bg);
 }
 
 .account-btn {
@@ -462,37 +505,201 @@ function startPlan(plan: WorkoutPlan) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  color: var(--text-muted);
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  padding: 0;
 }
-.account-btn:hover { background: var(--card-hover); color: var(--text); }
-.account-btn svg { width: 18px; height: 18px; }
 
-.account-badge {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  font-size: 0.5rem;
-  font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 4px;
-  line-height: 1.4;
+/* ── XP Hero card ────────────────────────────────────────────────────────── */
+.xp-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: var(--text);
 }
-.account-badge.guest {
-  background: var(--surface);
+.xp-hero-glow {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 70px;
+  background: rgba(212, 255, 58, 0.12);
+  filter: blur(20px);
+  pointer-events: none;
+}
+.xp-hero-top { position: relative; }
+.xp-hero-lbl {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.xp-hero-lbl-text {
+  font-size: 0.6875rem;
+  font-weight: 700;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  letter-spacing: 0.12em;
+}
+.xp-hero-num {
+  font-family: var(--font-display);
+  font-size: 2.375rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+}
+.xp-hero-sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.xp-hero-bar {
+  position: relative;
+  height: 10px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.xp-hero-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 70%, var(--flame) 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(212, 255, 58, 0.5);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.xp-hero-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: ff-shine 2.4s linear infinite;
+}
+[data-theme="light"] .xp-hero-fill { box-shadow: none; }
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-streak { position: relative; }
+.stat-streak-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 51, 102, 0.15), transparent);
+  pointer-events: none;
+}
+.stat-sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+.stat-value-hot { color: var(--hot); }
+.stat-faint { color: var(--text-faint); font-size: 1rem; }
+.stat-label {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Section label row ───────────────────────────────────────────────────── */
+.section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+/* ── Today hero card ─────────────────────────────────────────────────────── */
+.today-hero {
+  background: var(--accent);
+  border-radius: 22px;
+  padding: 18px;
+  color: var(--accent-ink);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: opacity 0.15s;
+}
+.today-hero:active { opacity: 0.9; }
+.today-hero-stripes {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  background: repeating-linear-gradient(45deg, var(--accent-ink) 0 2px, transparent 2px 14px);
+  pointer-events: none;
+}
+.today-hero-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+.today-hero-name {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-top: 4px;
+  line-height: 1.05;
+}
+.today-hero-meta {
+  display: flex;
+  gap: 0;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.today-hero-btn {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-ink);
+  color: var(--accent);
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
 }
 
 .account-sheet { z-index: 101; }
 
-.anon-prompt { background: var(--primary-dim); border-color: var(--primary); }
+.anon-prompt { background: var(--primary-dim); border-color: var(--accent); }
 
 .account-info { padding: 4px 0; }
 
@@ -500,11 +707,11 @@ function startPlan(plan: WorkoutPlan) {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   text-decoration: none;
   color: var(--text);
-  border-color: var(--primary);
-  background: var(--primary-dim);
+  border-color: var(--accent);
+  background: rgba(212, 255, 58, 0.08);
   position: relative;
   overflow: hidden;
 }
@@ -512,7 +719,7 @@ function startPlan(plan: WorkoutPlan) {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--accent);
   flex-shrink: 0;
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -528,31 +735,6 @@ function startPlan(plan: WorkoutPlan) {
 .banner-name {
   font-weight: 700;
   font-size: 1rem;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 24px;
-}
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 14px 8px;
-}
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary);
-  line-height: 1;
-}
-.stat-label {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  text-align: center;
 }
 
 .section-title { margin-bottom: 12px; }

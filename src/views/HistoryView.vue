@@ -215,15 +215,18 @@
               :to="{ name: 'workout-detail', params: { id: log.id } }"
               class="log-card card"
             >
-              <div class="log-main">
-                <div class="log-name">{{ log.planName }}</div>
-                <div class="log-date text-xs text-muted">{{ formatDate(log.startedAt) }}</div>
+              <div class="log-day-col">
+                <div class="log-dow">{{ dayOfWeek(log.startedAt) }}</div>
+                <div class="log-daynum">{{ dayNum(log.startedAt) }}</div>
               </div>
-              <div class="log-stats">
-                <span class="badge badge-green">{{ log.exercises.length }} exercises</span>
-                <span class="text-xs text-muted" v-if="log.completedAt">
-                  {{ formatDuration(elapsedSeconds(log.startedAt, log.completedAt)) }}
-                </span>
+              <div class="log-divider" />
+              <div class="log-main">
+                <div class="log-name-row">
+                  <div class="log-name">{{ log.planName }}</div>
+                </div>
+                <div class="log-detail mono text-xs text-muted">
+                  {{ log.exercises.length }} ex · {{ log.completedAt ? formatDuration(elapsedSeconds(log.startedAt, log.completedAt)) : '—' }}
+                </div>
               </div>
               <span class="log-arrow">›</span>
             </RouterLink>
@@ -245,6 +248,14 @@ import { getExerciseName, getExerciseById, isRunningExercise } from '../data/exe
 import type { WorkoutLog } from '../types'
 
 const store = useWorkoutsStore()
+
+const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+function dayOfWeek(iso: string) {
+  return DOW[new Date(iso).getDay()]
+}
+function dayNum(iso: string) {
+  return new Date(iso).getDate()
+}
 
 // ── Group logs by month (respects selectedDate filter) ───────────────────────
 const selectedDate = ref<string | null>(null)
@@ -879,10 +890,36 @@ const topExercises = computed(() => {
   text-decoration: none;
   color: var(--text);
   transition: background 0.15s;
+  padding: 12px;
+  border-radius: 14px;
 }
 .log-card:active { background: var(--card-hover); }
+.log-day-col {
+  text-align: center;
+  min-width: 42px;
+}
+.log-dow {
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.log-daynum {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+}
+.log-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
 .log-main { flex: 1; }
-.log-name { font-weight: 600; margin-bottom: 2px; }
-.log-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.log-arrow { font-size: 1.25rem; color: var(--text-dim); margin-left: 2px; }
+.log-name-row { display: flex; align-items: center; gap: 6px; }
+.log-name { font-weight: 700; font-size: 0.8125rem; }
+.log-detail { margin-top: 2px; }
+.log-arrow { font-size: 1.25rem; color: var(--text-faint); margin-left: 2px; }
 </style>

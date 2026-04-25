@@ -33,32 +33,36 @@
     </div>
 
     <div v-else class="page-inner">
-      <!-- Workout header -->
+      <!-- Workout header — design: centered title + timer -->
       <div class="workout-header">
-        <div>
-          <p class="text-xs text-muted">In progress</p>
-          <h1 class="workout-title">{{ store.activeWorkout.planName }}</h1>
+        <button class="header-circle-btn" @click="discard" title="Discard">×</button>
+        <div class="workout-header-center">
+          <div class="workout-header-tag">{{ store.activeWorkout.planName.toUpperCase() }}</div>
+          <div class="workout-header-timer mono">{{ elapsedLabel }}</div>
         </div>
-        <div class="header-right">
-          <button
-            class="rest-toggle"
-            :class="{ 'rest-toggle-off': !restEnabled }"
-            @click="restEnabled = !restEnabled"
-            :title="restEnabled ? 'Rest timer on — tap to disable' : 'Rest timer off — tap to enable'"
-          >⏸ Rest</button>
-          <div class="timer-badge">
-            <span class="timer-icon">⏱</span>
-            <span class="timer-label">{{ elapsedLabel }}</span>
-          </div>
-        </div>
+        <button
+          class="header-circle-btn"
+          :class="{ 'rest-toggle-off': !restEnabled }"
+          @click="restEnabled = !restEnabled"
+          :title="restEnabled ? 'Rest timer on' : 'Rest timer off'"
+        >⏸</button>
       </div>
 
-      <!-- Progress bar -->
-      <div class="progress-wrap">
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: progressPct + '%' }" />
-        </div>
-        <span class="progress-text text-xs text-muted">{{ completedSets }} / {{ totalSets }} sets</span>
+      <!-- Progress dots -->
+      <div class="progress-dots">
+        <div
+          v-for="(ex, i) in workout.exercises"
+          :key="ex.uid"
+          class="progress-dot"
+          :class="{
+            'dot-done': isExerciseDone(ex),
+            'dot-active': !isExerciseDone(ex) && i === currentExIdx,
+          }"
+        />
+      </div>
+      <div class="progress-meta">
+        <span>EXERCISE {{ currentExIdx + 1 }} OF {{ workout.exercises.length }}</span>
+        <span class="mono">+{{ completedSets }} SETS DONE</span>
       </div>
 
       <!-- Exercise list -->
@@ -115,7 +119,10 @@
 
       <!-- Finish / Discard -->
       <div class="workout-footer">
-        <button class="btn btn-primary btn-full" @click="finish">Finish Workout</button>
+        <div class="finish-bar" @click="finish">
+          <span class="finish-bar-text">Finish workout</span>
+          <span class="finish-bar-count mono">{{ completedSets }} / {{ totalSets }} done</span>
+        </div>
         <button class="btn btn-ghost btn-full" style="color: var(--danger)" @click="discard">Discard Workout</button>
       </div>
     </div>
@@ -256,6 +263,11 @@ const totalSets = computed(() => workout.exercises.reduce((s, ex) => s + ex.sets
 const completedSets = computed(() => workout.exercises.reduce((s, ex) => s + ex.sets.filter(set => set.completed).length, 0))
 const progressPct = computed(() => totalSets.value === 0 ? 0 : Math.round((completedSets.value / totalSets.value) * 100))
 
+const currentExIdx = computed(() => {
+  const idx = workout.exercises.findIndex(ex => !isExerciseDone(ex))
+  return idx === -1 ? workout.exercises.length - 1 : idx
+})
+
 function isExerciseDone(ex: LoggedExercise) {
   return ex.sets.length > 0 && ex.sets.every(s => s.completed)
 }
@@ -390,78 +402,71 @@ function discard() {
 .workout-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 14px;
 }
 
-.workout-title {
-  font-size: 1.5rem;
-}
-
-.header-right {
+.header-circle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.rest-toggle {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 100px;
-  border: 1px solid var(--primary);
-  background: var(--primary-dim);
-  color: var(--primary);
+  justify-content: center;
+  font-size: 1.125rem;
+  color: var(--text);
   cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s;
 }
-.rest-toggle-off {
-  border-color: var(--border);
-  background: transparent;
-  color: var(--text-dim);
+.header-circle-btn.rest-toggle-off {
+  color: var(--text-faint);
 }
 
-.timer-badge {
+.workout-header-center {
+  text-align: center;
+}
+.workout-header-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+}
+.workout-header-timer {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+/* ── Progress dots ────────────────────────────────────────────────────────── */
+.progress-dots {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  padding: 6px 14px;
-  flex-shrink: 0;
+  margin-bottom: 4px;
 }
-.timer-icon { font-size: 0.875rem; }
-.timer-label {
-  font-size: 1rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  color: var(--primary);
+.progress-dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  transition: background 0.2s;
+}
+.progress-dot.dot-done { background: var(--accent); }
+.progress-dot.dot-active {
+  background: linear-gradient(to right, var(--accent) 50%, var(--surface-2) 50%);
 }
 
-.progress-wrap {
+.progress-meta {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 18px;
 }
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-.progress-text { flex-shrink: 0; }
 
 .exercise-list {
   display: flex;
@@ -550,6 +555,28 @@ function discard() {
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
+}
+
+.finish-bar {
+  background: var(--text);
+  color: var(--bg);
+  padding: 14px 18px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.finish-bar:active { opacity: 0.9; }
+.finish-bar-text {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.finish-bar-count {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
 }
 
 /* Expand transition */

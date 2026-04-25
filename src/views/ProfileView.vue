@@ -2,55 +2,27 @@
   <main class="page">
     <div class="page-inner">
       <div class="page-header">
-        <h1>Profile</h1>
+        <h1>You</h1>
+        <button class="header-circle-btn" @click="toggleTheme" :title="isDarkMode ? 'Switch to light' : 'Switch to dark'">
+          <span v-if="isDarkMode">☀</span>
+          <span v-else>🌙</span>
+        </button>
       </div>
 
-      <!-- ── Level card ──────────────────────────────────────────────────── -->
-      <div class="level-card card">
-        <!-- SVG ring -->
-        <div class="ring-wrap">
-          <svg viewBox="0 0 100 100" class="ring-svg">
-            <!-- Track -->
-            <circle cx="50" cy="50" r="42" class="ring-track" />
-            <!-- Fill -->
-            <circle
-              cx="50" cy="50" r="42"
-              class="ring-fill"
-              :style="{ strokeDashoffset: trackOffset }"
-            />
-          </svg>
-          <div class="ring-center">
-            <span class="ring-level">{{ gStore.level }}</span>
-            <span class="ring-label">LVL</span>
+      <// ── Achievements ─────────────────────────────────────────────────────────── Hero card with avatar ───────────────────────────────────────── -->
+      <div class="profile-hero card">
+        <div class="profile-hero-glow" />
+        <div class="profile-hero-inner">
+          <div class="profile-avatar">
+            {{ authStore.email ? authStore.email.charAt(0).toUpperCase() : 'G' }}
           </div>
-        </div>
-
-        <div class="level-info">
-          <div class="level-title">Level {{ gStore.level }}</div>
-          <div class="xp-row">
-            <span class="xp-value">{{ gStore.xp.toLocaleString() }} XP</span>
+          <div class="profile-hero-info">
+            <div class="profile-hero-name">{{ authStore.email?.split('@')[0] || 'Guest' }}</div>
+            <div class="profile-hero-email mono text-xs text-muted">{{ authStore.email || 'Not signed in' }}</div>
+            <div class="profile-hero-badge">
+              ⚡ L{{ gStore.level }} · {{ gStore.xp.toLocaleString() }} XP
+            </div>
           </div>
-          <div class="xp-bar">
-            <div class="xp-fill" :style="{ width: (gStore.progress * 100).toFixed(1) + '%' }" />
-          </div>
-          <div class="xp-caption text-xs text-muted">
-            {{ gStore.xpThisLevel.toLocaleString() }} / {{ gStore.xpNextLevel.toLocaleString() }} XP
-            · {{ gStore.xpToNext.toLocaleString() }} to Level {{ gStore.level + 1 }}
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Theme toggle ────────────────────────────────────────────────── -->
-      <div class="theme-toggle-card card" style="margin-bottom: 16px; margin-top: 16px;">
-        <div class="flex items-center justify-between">
-          <div>
-            <div style="font-weight: 700; font-family: var(--font-display); letter-spacing: -0.01em;">Appearance</div>
-            <div class="text-xs text-muted" style="margin-top: 2px;">{{ isDarkMode ? 'Electric Forge (Dark)' : 'Daylight Cream (Light)' }}</div>
-          </div>
-          <button class="theme-btn" @click="toggleTheme" :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'">
-            <span v-if="isDarkMode">☀</span>
-            <span v-else>🌙</span>
-          </button>
         </div>
       </div>
 
@@ -266,12 +238,14 @@
 import { computed, reactive, ref } from 'vue'
 import { useGamificationStore } from '../stores/gamification'
 import { useWorkoutsStore } from '../stores/workouts'
+import { useAuthStore } from '../stores/auth'
 import { ACHIEVEMENTS, WEEKLY_MISSIONS } from '../utils/gamificationDefs'
 import type { AchievementDef, MissionDef } from '../types/gamification'
 import type { NutritionProfile } from '../types'
 
 const gStore = useGamificationStore()
 const store  = useWorkoutsStore()
+const authStore = useAuthStore()
 
 // ── Theme toggle ───────────────────────────────────────────────────────────────
 const isDarkMode = ref(document.documentElement.getAttribute('data-theme') !== 'light')
@@ -585,131 +559,81 @@ function missionProgressLabel(m: MissionDef): string {
   line-height: 1.4;
 }
 
-/* ── Level card ──────────────────────────────────────────────────────────── */
-.level-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 0;
-  padding: 20px;
-}
-
-/* ── Theme toggle ────────────────────────────────────────────────────────── */
-.theme-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+/* ── Profile hero ────────────────────────────────────────────────────────── */
+.header-circle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--surface);
   border: 1px solid var(--border);
-  background: var(--surface-2);
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
+  color: var(--text);
 }
-.theme-btn:active {
-  transform: scale(0.92);
-}
+.header-circle-btn:active { transform: scale(0.92); }
 
-.ring-wrap {
+.profile-hero {
   position: relative;
-  width: 88px;
-  height: 88px;
-  flex-shrink: 0;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 22px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
 }
-
-.ring-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-track {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 8;
-}
-
-.ring-fill {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 8;
-  stroke-linecap: round;
-  stroke-dasharray: v-bind(CIRCUMFERENCE);
-  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 0 6px rgba(212, 255, 58, 0.45));
-}
-
-.ring-center {
+.profile-hero-glow {
   position: absolute;
-  inset: 0;
+  top: -30px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+  border-radius: 80px;
+  background: rgba(212, 255, 58, 0.1);
+  filter: blur(30px);
+  pointer-events: none;
+}
+.profile-hero-inner {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--flame));
+  display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.ring-level {
-  font-size: 1.5rem;
+  color: var(--accent-ink);
   font-weight: 800;
   font-family: var(--font-display);
-  color: var(--accent);
-  line-height: 1;
+  font-size: 1.75rem;
+  flex-shrink: 0;
 }
-
-.ring-label {
-  font-size: 0.5625rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.level-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.level-title {
+.profile-hero-info { flex: 1; }
+.profile-hero-name {
   font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
-
-.xp-row {
-  display: flex;
+.profile-hero-email { margin-top: 2px; }
+.profile-hero-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.xp-value {
-  font-size: 0.875rem;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 8px;
+  background: rgba(212, 255, 58, 0.15);
+  border-radius: 999px;
+  font-size: 0.625rem;
   font-weight: 700;
-  font-family: var(--font-mono);
   color: var(--accent);
-}
-
-.xp-bar {
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.xp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--primary));
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-.xp-caption {
-  margin-top: 2px;
-  line-height: 1.3;
+  letter-spacing: 0.08em;
 }
 
 /* ── Section header ──────────────────────────────────────────────────────── */
