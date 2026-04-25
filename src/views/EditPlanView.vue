@@ -422,8 +422,8 @@ function save() {
 
 /* Difficulty colours override primary when active */
 .goal-pill.diff-beginner.active    { background: rgba(167,139,250,0.12); border-color: var(--accent); color: var(--accent); }
-.goal-pill.diff-intermediate.active { background: rgba(56,189,248,0.12);  border-color: var(--primary); color: var(--primary); }
-.goal-pill.diff-advanced.active    { background: rgba(251,146,60,0.12);  border-color: var(--warm);   color: var(--warm); }
+.goal-pill.diff-intermediate.active { background: var(--primary-dim);  border-color: var(--primary); color: var(--primary); }
+.goal-pill.diff-advanced.active    { background: rgba(255, 138, 61, 0.12);  border-color: var(--flame);   color: var(--flame); }
 
 .num-pill {
   width: 36px;

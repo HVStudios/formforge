@@ -159,16 +159,16 @@ function confirmDelete(plan: WorkoutPlan) {
 
 /* Goal badges — tinted by goal type */
 .goal-badge { background: var(--primary-dim); color: var(--primary); }
-.goal-strength    { background: rgba(251,146,60,0.12);  color: var(--warm); }
-.goal-hypertrophy { background: rgba(56,189,248,0.12);  color: var(--primary); }
+.goal-strength    { background: rgba(255, 138, 61, 0.12);  color: var(--flame); }
+.goal-hypertrophy { background: var(--primary-dim);  color: var(--primary); }
 .goal-endurance   { background: rgba(167,139,250,0.12); color: var(--accent); }
 .goal-fat-loss    { background: rgba(248,113,113,0.12); color: var(--danger); }
 .goal-mobility    { background: rgba(167,139,250,0.12); color: var(--accent); }
-.goal-general     { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+.goal-general     { background: var(--primary-dim);  color: var(--accent); }
 
 /* Difficulty badges */
 .diff-badge { }
 .diff-beginner     { background: rgba(167,139,250,0.12); color: var(--accent); }
-.diff-intermediate { background: rgba(56,189,248,0.12);  color: var(--primary); }
-.diff-advanced     { background: rgba(251,146,60,0.12);  color: var(--warm); }
+.diff-intermediate { background: var(--primary-dim);  color: var(--primary); }
+.diff-advanced     { background: rgba(255, 138, 61, 0.12);  color: var(--flame); }
 </style>

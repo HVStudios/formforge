@@ -184,7 +184,7 @@ function confirmDelete() {
 /* Gold PR badge */
 .badge-gold {
   background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  color: var(--accent);
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
@@ -227,5 +227,5 @@ function confirmDelete() {
 
 /* PR row: subtle gold highlight */
 .set-pr { background: rgba(251, 191, 36, 0.06); border-radius: 4px; }
-.set-pr span:last-child { color: #fbbf24; }
+.set-pr span:last-child { color: var(--accent); }
 </style>

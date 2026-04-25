@@ -426,7 +426,7 @@ function startPlan(plan: WorkoutPlan) {
 .level-badge-lv {
   font-size: 0.6875rem;
   font-weight: 800;
-  color: #fbbf24;
+  color: var(--accent);
   white-space: nowrap;
 }
 
@@ -440,7 +440,7 @@ function startPlan(plan: WorkoutPlan) {
 
 .level-badge-fill {
   height: 100%;
-  background: #fbbf24;
+  background: var(--accent);
   border-radius: 2px;
   transition: width 0.5s ease;
 }
@@ -623,7 +623,7 @@ function startPlan(plan: WorkoutPlan) {
 }
 .steps-goal-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  background: linear-gradient(90deg, var(--accent), var(--primary));
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -767,9 +767,9 @@ function startPlan(plan: WorkoutPlan) {
   letter-spacing: 0.04em;
 }
 
-.tip-badge--warm    { color: var(--warm);    background: rgba(251,146,60,0.1);   border-color: rgba(251,146,60,0.35); }
+.tip-badge--warm    { color: var(--flame);    background: rgba(255, 138, 61, 0.10);   border-color: rgba(255, 138, 61, 0.30); }
 .tip-badge--accent  { color: var(--accent);  background: rgba(167,139,250,0.1);  border-color: rgba(167,139,250,0.35); }
-.tip-badge--primary { color: var(--primary); background: var(--primary-dim);     border-color: rgba(56,189,248,0.35); }
+.tip-badge--primary { color: var(--primary); background: var(--primary-dim);     border-color: rgba(212, 255, 58, 0.25); }
 .tip-badge--dim     { color: var(--text-dim); background: var(--surface);        border-color: var(--border); }
 
 .tip-list {

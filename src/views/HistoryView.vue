@@ -823,7 +823,7 @@ const topExercises = computed(() => {
 .pr-set  { margin-top: 1px; }
 
 .pr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.pr-e1rm  { font-size: 0.9375rem; font-weight: 700; color: #fbbf24; }
+.pr-e1rm  { font-size: 0.9375rem; font-weight: 700; color: var(--accent); }
 
 .pr-chevron { font-size: 1.1rem; color: var(--text-dim); }
 

@@ -40,6 +40,20 @@
         </div>
       </div>
 
+      <!-- ── Theme toggle ────────────────────────────────────────────────── -->
+      <div class="theme-toggle-card card" style="margin-bottom: 16px; margin-top: 16px;">
+        <div class="flex items-center justify-between">
+          <div>
+            <div style="font-weight: 700; font-family: var(--font-display); letter-spacing: -0.01em;">Appearance</div>
+            <div class="text-xs text-muted" style="margin-top: 2px;">{{ isDarkMode ? 'Electric Forge (Dark)' : 'Daylight Cream (Light)' }}</div>
+          </div>
+          <button class="theme-btn" @click="toggleTheme" :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'">
+            <span v-if="isDarkMode">☀</span>
+            <span v-else>🌙</span>
+          </button>
+        </div>
+      </div>
+
       <!-- ── Nutrition targets ───────────────────────────────────────────── -->
       <div class="section-header">
         <h2 class="section-title" style="margin-bottom:0">Nutrition Targets</h2>
@@ -259,6 +273,20 @@ import type { NutritionProfile } from '../types'
 const gStore = useGamificationStore()
 const store  = useWorkoutsStore()
 
+// ── Theme toggle ───────────────────────────────────────────────────────────────
+const isDarkMode = ref(document.documentElement.getAttribute('data-theme') !== 'light')
+
+function toggleTheme() {
+  isDarkMode.value = !isDarkMode.value
+  if (isDarkMode.value) {
+    document.documentElement.removeAttribute('data-theme')
+    localStorage.removeItem('ff_theme')
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light')
+    localStorage.setItem('ff_theme', 'light')
+  }
+}
+
 // ── Nutrition ──────────────────────────────────────────────────────────────────
 const showNutrition = ref(false)
 
@@ -414,7 +442,7 @@ function missionProgressLabel(m: MissionDef): string {
   border-radius: 100px;
 }
 .ngoal-cut      { background: rgba(248,113,113,0.15); color: var(--danger); }
-.ngoal-maintain { background: rgba(56,189,248,0.12);  color: var(--primary); }
+.ngoal-maintain { background: var(--primary-dim);  color: var(--primary); }
 .ngoal-bulk     { background: rgba(167,139,250,0.12); color: var(--accent); }
 
 .calories-row {
@@ -476,7 +504,7 @@ function missionProgressLabel(m: MissionDef): string {
 .macro-fill { height: 100%; border-radius: 2px; }
 .protein-fill { background: var(--danger); }
 .carb-fill    { background: var(--primary); }
-.fat-fill     { background: var(--warm); }
+.fat-fill     { background: var(--flame); }
 
 .nutrition-basis { margin-top: -4px; }
 
@@ -562,8 +590,26 @@ function missionProgressLabel(m: MissionDef): string {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 28px;
+  margin-bottom: 0;
   padding: 20px;
+}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.theme-btn:active {
+  transform: scale(0.92);
 }
 
 .ring-wrap {
@@ -587,13 +633,12 @@ function missionProgressLabel(m: MissionDef): string {
 
 .ring-fill {
   fill: none;
-  stroke: url(#levelGradient);
-  stroke: var(--primary);
+  stroke: var(--accent);
   stroke-width: 8;
   stroke-linecap: round;
   stroke-dasharray: v-bind(CIRCUMFERENCE);
   transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.55));
+  filter: drop-shadow(0 0 6px rgba(212, 255, 58, 0.45));
 }
 
 .ring-center {
@@ -608,7 +653,8 @@ function missionProgressLabel(m: MissionDef): string {
 .ring-level {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--primary);
+  font-family: var(--font-display);
+  color: var(--accent);
   line-height: 1;
 }
 
@@ -628,8 +674,10 @@ function missionProgressLabel(m: MissionDef): string {
 }
 
 .level-title {
+  font-family: var(--font-display);
   font-size: 1.125rem;
   font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .xp-row {
@@ -640,8 +688,9 @@ function missionProgressLabel(m: MissionDef): string {
 
 .xp-value {
   font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--primary);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent);
 }
 
 .xp-bar {
@@ -653,7 +702,7 @@ function missionProgressLabel(m: MissionDef): string {
 
 .xp-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  background: linear-gradient(90deg, var(--accent), var(--primary));
   border-radius: 3px;
   transition: width 0.5s ease;
 }
@@ -689,8 +738,8 @@ function missionProgressLabel(m: MissionDef): string {
 }
 
 .mission-card.mission-done {
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.05);
+  border-color: rgba(212, 255, 58, 0.25);
+  background: rgba(212, 255, 58, 0.05);
 }
 
 .mission-header {
@@ -728,7 +777,7 @@ function missionProgressLabel(m: MissionDef): string {
   font-weight: 700;
 }
 
-.mission-xp   { color: #fbbf24; }
+.mission-xp   { color: var(--accent); }
 .mission-check { color: var(--primary); font-size: 1rem; }
 
 .mission-progress {
@@ -747,7 +796,7 @@ function missionProgressLabel(m: MissionDef): string {
 
 .mission-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  background: linear-gradient(90deg, var(--accent), var(--primary));
   border-radius: 3px;
   transition: width 0.4s ease;
 }
@@ -800,7 +849,7 @@ function missionProgressLabel(m: MissionDef): string {
 }
 
 /* Rarity borders (unlocked) */
-.rarity-common.ach-cell:not(.ach-locked)    { border-color: rgba(56, 189, 248, 0.25); }
+.rarity-common.ach-cell:not(.ach-locked)    { border-color: rgba(212, 255, 58, 0.18); }
 .rarity-rare.ach-cell:not(.ach-locked)      { border-color: rgba(167, 139, 250, 0.4); }
 .rarity-epic.ach-cell:not(.ach-locked)      { border-color: rgba(251, 146, 60, 0.4); }
 .rarity-legendary.ach-cell:not(.ach-locked) { border-color: rgba(251, 191, 36, 0.5); box-shadow: 0 0 12px rgba(251, 191, 36, 0.2); }
@@ -844,7 +893,7 @@ function missionProgressLabel(m: MissionDef): string {
 .ach-detail-xp {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--accent);
 }
 
 .ach-earned-msg {
@@ -864,6 +913,6 @@ function missionProgressLabel(m: MissionDef): string {
 
 .rarity-legendary-badge {
   background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  color: var(--accent);
 }
 </style>

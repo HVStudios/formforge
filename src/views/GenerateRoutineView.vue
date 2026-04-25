@@ -571,7 +571,7 @@ function saveAll() {
 }
 .context-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+  box-shadow: 0 0 0 3px var(--primary-dim);
 }
 .context-input::placeholder { color: var(--text-dim); }
 

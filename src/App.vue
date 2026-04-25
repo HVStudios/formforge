@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from 'vue'
+import { watch, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import BottomNav          from './components/BottomNav.vue'
 import AchievementToast   from './components/AchievementToast.vue'
@@ -30,6 +30,15 @@ const route            = useRoute()
 const authStore        = useAuthStore()
 const workoutsStore    = useWorkoutsStore()
 const gamificationStore = useGamificationStore()
+
+// ── Light mode toggle ─────────────────────────────────────────────────────
+// Persisted in localStorage. ProfileView reads/writes this via data-theme on <html>.
+onMounted(() => {
+  const saved = localStorage.getItem('ff_theme')
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light')
+  }
+})
 
 // Load / clear data on auth state change
 watch(
@@ -81,16 +90,18 @@ watch(dataSnapshot, async () => {
 
 .sync-toast {
   position: fixed;
-  bottom: calc(var(--nav-height, 64px) + var(--safe-bottom, 0px) + 12px);
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 12px);
   left: 16px;
   right: 16px;
-  background: #7f1d1d;
-  color: #fca5a5;
-  border: 1px solid #b91c1c;
-  border-radius: 10px;
-  padding: 10px 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--hot);
+  border-radius: var(--radius);
+  padding: 10px 14px;
   font-size: 0.875rem;
   font-weight: 600;
+  color: var(--hot);
   text-align: center;
   z-index: 200;
   pointer-events: none;

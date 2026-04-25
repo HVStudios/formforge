@@ -25,20 +25,19 @@
         <span class="nav-label">Plans</span>
       </RouterLink>
 
-      <RouterLink
-        to="/workout"
-        class="nav-item nav-workout"
-        :class="{ active: route.name === 'workout', 'has-active': !!store.activeWorkout }"
-      >
-        <span class="nav-icon workout-icon">
-          <!-- Dumbbell icon -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 4v16M18 4v16M6 8H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M6 12h12"/>
+      <!-- Centre FAB -->
+      <div class="nav-fab-wrap">
+        <RouterLink
+          to="/workout"
+          class="nav-fab"
+          :class="{ active: route.name === 'workout', 'has-active': !!store.activeWorkout }"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12L19 12M12 5L12 19" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
           </svg>
-        </span>
-        <span class="nav-label">Workout</span>
-        <span v-if="store.activeWorkout" class="active-dot" />
-      </RouterLink>
+          <span v-if="store.activeWorkout" class="active-dot" />
+        </RouterLink>
+      </div>
 
       <RouterLink to="/history" class="nav-item" :class="{ active: route.name === 'history' || route.name === 'workout-detail' || route.name === 'exercise-history' }">
         <span class="nav-icon">
@@ -53,11 +52,12 @@
       <RouterLink to="/profile" class="nav-item" :class="{ active: route.name === 'profile' }">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
           </svg>
         </span>
-        <span class="nav-label">Profile</span>
-        <span v-if="gStore.level > 1 || gStore.achievements.length > 0" class="level-chip">{{ gStore.level }}</span>
+        <span class="nav-label">You</span>
+        <span v-if="gStore.level >= 1" class="level-chip">{{ gStore.level }}</span>
       </RouterLink>
     </div>
   </nav>
@@ -80,7 +80,8 @@ const gStore = useGamificationStore()
   left: 0;
   right: 0;
   z-index: 50;
-  padding: 0 12px calc(var(--safe-bottom) + 8px);
+  padding: 10px 12px calc(var(--safe-bottom) + 10px);
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
   pointer-events: none;
 }
 
@@ -88,56 +89,56 @@ const gStore = useGamificationStore()
   max-width: 480px;
   margin: 0 auto;
   height: 64px;
-  background: rgba(11, 15, 30, 0.92);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(56, 189, 248, 0.12);
-  border-radius: 22px;
-  display: flex;
-  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
   pointer-events: auto;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  box-shadow: var(--card-shadow);
+  padding: 8px;
+  position: relative;
 }
 
 .nav-item {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   text-decoration: none;
   position: relative;
   transition: color 0.2s;
 }
 
 .nav-item.active {
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .nav-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 28px;
-  border-radius: 10px;
+  width: 34px;
+  height: 26px;
+  border-radius: 8px;
   transition: background 0.2s;
 }
 
 .nav-item.active .nav-icon {
-  background: var(--primary-dim);
+  background: rgba(212, 255, 58, 0.12);
+}
+
+[data-theme="light"] .nav-item.active .nav-icon {
+  background: rgba(20, 20, 15, 0.08);
 }
 
 .nav-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   transition: transform 0.15s;
-}
-
-.nav-item:active .nav-icon svg {
-  transform: scale(0.84);
 }
 
 @keyframes nav-icon-pop {
@@ -145,7 +146,6 @@ const gStore = useGamificationStore()
   60%  { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
-
 .nav-item.active .nav-icon svg {
   animation: nav-icon-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -154,64 +154,79 @@ const gStore = useGamificationStore()
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  font-family: var(--font-ui);
 }
 
-/* Workout button — glowing pill */
-.nav-workout .workout-icon {
-  width: 52px;
-  height: 34px;
-  background: var(--primary-dim);
-  border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: 12px;
-  transition: all 0.2s;
+/* ── Centre FAB ───────────────────────────────────────────── */
+.nav-fab-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.nav-workout.active .workout-icon,
-.nav-workout.has-active .workout-icon {
-  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-  border-color: transparent;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+.nav-fab {
+  position: relative;
+  top: -22px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(212, 255, 58, 0.45), 0 0 0 4px var(--bg);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.nav-workout.active svg,
-.nav-workout.has-active svg {
-  color: #001a2e;
+.nav-fab:active {
+  transform: scale(0.93);
+}
+
+.nav-fab.active,
+.nav-fab.has-active {
+  box-shadow: 0 8px 28px rgba(212, 255, 58, 0.60), 0 0 0 4px var(--bg);
+}
+
+[data-theme="light"] .nav-fab {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.20), 0 0 0 4px var(--bg);
 }
 
 .active-dot {
   position: absolute;
-  top: 4px;
-  right: calc(50% - 16px);
-  width: 7px;
-  height: 7px;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid var(--surface);
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.60);
+  background: var(--hot);
+  border: 2px solid var(--accent);
   animation: dot-pulse 1.5s ease-in-out infinite;
 }
 
 .level-chip {
   position: absolute;
-  top: 4px;
-  right: calc(50% - 16px);
+  top: 2px;
+  right: calc(50% - 18px);
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #fbbf24;
-  color: #1a0e00;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-size: 0.5625rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--surface);
+  border: 1.5px solid var(--bg);
   line-height: 1;
+  font-family: var(--font-mono);
 }
 
 @keyframes dot-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50%       { opacity: 0.35; }
 }
 </style>

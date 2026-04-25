@@ -202,7 +202,7 @@ const chart = computed(() => {
 .pr-badge {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--accent);
   letter-spacing: 0.04em;
 }
 

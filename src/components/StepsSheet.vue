@@ -253,7 +253,7 @@ watch(() => props.modelValue, (open) => {
 }
 .goal-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  background: linear-gradient(90deg, var(--accent), var(--primary));
   border-radius: 3px;
   transition: width 0.3s ease;
 }

@@ -2,20 +2,15 @@
   <div class="set-row" :class="{ completed: set.completed }">
     <span class="set-num">{{ number }}</span>
 
-    <!-- Weight input with ±2.5 adj buttons -->
+    <!-- Weight input -->
     <div class="input-group" :class="{ focused: weightFocused }">
-      <button
-        class="adj-btn"
-        :disabled="set.completed"
-        @click.prevent="adjustWeight(-2.5)"
-        tabindex="-1"
-      >−</button>
+      <button class="adj-btn" :disabled="set.completed" @click.prevent="adjustWeight(-2.5)" tabindex="-1">−</button>
       <input
         ref="weightRef"
         :value="set.weight ?? ''"
         type="number"
         inputmode="decimal"
-        placeholder="—"
+        placeholder="kg"
         class="set-input"
         :disabled="set.completed"
         @focus="weightFocused = true"
@@ -23,28 +18,18 @@
         @input="updateWeight(($event.target as HTMLInputElement).value)"
         @keydown.enter.prevent="focusReps"
       />
-      <button
-        class="adj-btn adj-plus"
-        :disabled="set.completed"
-        @click.prevent="adjustWeight(2.5)"
-        tabindex="-1"
-      >+</button>
+      <button class="adj-btn" :disabled="set.completed" @click.prevent="adjustWeight(2.5)" tabindex="-1">+</button>
     </div>
 
-    <!-- Reps input with ±1 adj buttons -->
+    <!-- Reps input -->
     <div class="input-group" :class="{ focused: repsFocused }">
-      <button
-        class="adj-btn"
-        :disabled="set.completed"
-        @click.prevent="adjustReps(-1)"
-        tabindex="-1"
-      >−</button>
+      <button class="adj-btn" :disabled="set.completed" @click.prevent="adjustReps(-1)" tabindex="-1">−</button>
       <input
         ref="repsRef"
         :value="set.reps ?? ''"
         type="number"
         inputmode="numeric"
-        placeholder="—"
+        placeholder="reps"
         class="set-input"
         :disabled="set.completed"
         @focus="repsFocused = true"
@@ -52,19 +37,10 @@
         @input="updateReps(($event.target as HTMLInputElement).value)"
         @keydown.enter.prevent="complete"
       />
-      <button
-        class="adj-btn adj-plus"
-        :disabled="set.completed"
-        @click.prevent="adjustReps(1)"
-        tabindex="-1"
-      >+</button>
+      <button class="adj-btn" :disabled="set.completed" @click.prevent="adjustReps(1)" tabindex="-1">+</button>
     </div>
 
-    <button
-      class="complete-btn"
-      :class="{ done: set.completed }"
-      @click="toggleComplete"
-    >
+    <button class="complete-btn" :class="{ done: set.completed }" @click="toggleComplete">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
@@ -144,38 +120,52 @@ function toggleComplete() {
 
 <style scoped>
 .set-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 36px;
   align-items: center;
   gap: 8px;
-  padding: 7px 0;
-  transition: opacity 0.2s;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  transition: background 0.15s;
 }
 
-.set-row.completed { opacity: 0.45; }
+.set-row:first-child { border-top: none; }
+
+.set-row.completed {
+  background: rgba(212, 255, 58, 0.04);
+}
+
+.set-row.completed .set-input,
+.set-row.completed .set-num {
+  opacity: 0.4;
+}
 
 .set-num {
-  width: 20px;
-  text-align: center;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
+  text-align: center;
   flex-shrink: 0;
 }
 
-/* ── Input group with adj buttons ────────────────────────────────────────── */
+.set-row.completed .set-num {
+  color: var(--accent);
+}
+
+/* ── Input group ─────────────────────────────────── */
 .input-group {
-  flex: 1;
   display: flex;
   align-items: stretch;
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   overflow: hidden;
   transition: border-color 0.15s;
 }
 
 .input-group.focused {
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .adj-btn {
@@ -185,8 +175,7 @@ function toggleComplete() {
   border: none;
   color: var(--text-muted);
   font-size: 1rem;
-  font-weight: 600;
-  line-height: 1;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -199,21 +188,13 @@ function toggleComplete() {
 
 .adj-btn:active:not(:disabled) {
   background: var(--border);
-  color: var(--primary);
+  color: var(--accent);
 }
 
-.adj-btn:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
+.adj-btn:disabled { opacity: 0.2; cursor: default; }
 
-.adj-plus {
-  border-left: 1px solid var(--border);
-}
-
-.adj-btn:first-child {
-  border-right: 1px solid var(--border);
-}
+.adj-btn:first-child { border-right: 1px solid var(--border); }
+.adj-btn:last-child  { border-left:  1px solid var(--border); }
 
 .set-input {
   width: 0;
@@ -221,8 +202,9 @@ function toggleComplete() {
   background: none;
   border: none;
   color: var(--text);
+  font-family: var(--font-mono);
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   padding: 9px 4px;
   outline: none;
   text-align: center;
@@ -230,21 +212,20 @@ function toggleComplete() {
 }
 
 .set-input:disabled { color: var(--text-muted); }
-.set-input::placeholder { color: var(--text-dim); }
+.set-input::placeholder { color: var(--text-faint); font-weight: 500; }
 
-/* Hide number spinners */
 .set-input::-webkit-inner-spin-button,
 .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 .set-input[type=number] { -moz-appearance: textfield; }
 
-/* ── Complete button ──────────────────────────────────────────────────────── */
+/* ── Complete button ─────────────────────────────── */
 .complete-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1.5px solid var(--border);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-faint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -252,23 +233,24 @@ function toggleComplete() {
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.complete-btn svg { width: 16px; height: 16px; }
+
+.complete-btn svg { width: 15px; height: 15px; }
 .complete-btn:active { transform: scale(0.88); }
 
 .complete-btn.done {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #0d0d0d;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
-/* ── Delete button ────────────────────────────────────────────────────────── */
+/* ── Delete button ───────────────────────────────── */
 .delete-btn {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-faint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,11 +258,8 @@ function toggleComplete() {
   flex-shrink: 0;
   transition: color 0.15s, border-color 0.15s;
 }
-.delete-btn svg { width: 13px; height: 13px; }
+.delete-btn svg { width: 12px; height: 12px; }
 .delete-btn:active { color: var(--danger); border-color: var(--danger); }
 
-.delete-spacer {
-  width: 26px;
-  flex-shrink: 0;
-}
+.delete-spacer { width: 24px; flex-shrink: 0; }
 </style>

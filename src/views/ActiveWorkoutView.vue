@@ -475,7 +475,7 @@ function discard() {
   transition: border-color 0.2s;
 }
 .exercise-block.ex-done {
-  border-color: var(--primary-dark);
+  border-color: var(--accent);
   background: rgba(34, 197, 94, 0.04);
 }
 
