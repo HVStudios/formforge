@@ -52,7 +52,7 @@ export async function generateRoutine(prefs: RoutinePreferences): Promise<Genera
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.1-flash-lite-preview',
+    model: 'gemini-2.5-flash',
     generationConfig: { responseMimeType: 'application/json' },
   })
 
@@ -158,7 +158,7 @@ export async function generateRunningPlan(prefs: RunningPreferences): Promise<Ge
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.1-flash-lite-preview',
+    model: 'gemini-2.5-flash',
     generationConfig: { responseMimeType: 'application/json' },
   })
 
