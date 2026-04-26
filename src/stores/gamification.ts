@@ -11,6 +11,7 @@ import {
   levelFromXp,
   xpForLevel,
   levelProgress,
+  levelRankName,
   getWeekKey,
   isInCurrentWeek,
   computeWorkoutStreak,
@@ -42,6 +43,7 @@ export const useGamificationStore = defineStore('gamification', () => {
 
   // ─── Computed ──────────────────────────────────────────────────────────────
   const level       = computed(() => levelFromXp(xp.value))
+  const levelName   = computed(() => levelRankName(level.value))
   const progress    = computed(() => levelProgress(xp.value))
   const xpThisLevel = computed(() => xp.value - xpForLevel(level.value))
   const xpNextLevel = computed(() => xpForLevel(level.value + 1) - xpForLevel(level.value))
@@ -217,7 +219,7 @@ export const useGamificationStore = defineStore('gamification', () => {
     xp, achievements, weeklyMissions, pendingToast, syncError,
     _loaded,
     // Computed
-    level, progress, xpThisLevel, xpNextLevel, xpToNext,
+    level, levelName, progress, xpThisLevel, xpNextLevel, xpToNext,
     // Actions
     loadFromFirestore, clearData, evaluate, dismissToast,
     getMissionProgress, isMissionCompleted,

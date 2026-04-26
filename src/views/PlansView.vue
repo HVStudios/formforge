@@ -22,6 +22,17 @@
         <div class="ai-hero-btn">✦ Generate with AI</div>
       </div>
 
+      <!-- Filter chips -->
+      <div v-if="store.plans.length > 0" class="filter-chips">
+        <button
+          v-for="f in FILTERS"
+          :key="f.value"
+          class="filter-chip"
+          :class="{ active: activeFilter === f.value }"
+          @click="activeFilter = f.value"
+        >{{ f.label }}</button>
+      </div>
+
       <div v-if="store.plans.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
         <p>No workout plans yet.</p>
@@ -33,7 +44,7 @@
 
       <!-- Plans grid — 2 col with pattern headers -->
       <div v-else class="plans-grid">
-        <div v-for="(plan, i) in store.plans" :key="plan.id" class="plan-tile">
+        <div v-for="(plan, i) in filteredPlans" :key="plan.id" class="plan-tile">
           <!-- Pattern header -->
           <div class="plan-tile-header" :style="{ background: planColor(plan, i) }">
             <div class="plan-tile-pattern" :class="'pattern-' + (i % 4)" />
@@ -69,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDate } from '../utils/format'
@@ -93,6 +105,23 @@ const PLAN_COLORS = [
 const store = useWorkoutsStore()
 const router = useRouter()
 
+const FILTERS = [
+  { value: 'all',         label: 'All' },
+  { value: 'strength',    label: 'Strength' },
+  { value: 'hypertrophy', label: 'Hypertrophy' },
+  { value: 'endurance',   label: 'Run' },
+  { value: 'fat-loss',    label: 'Fat Loss' },
+  { value: 'general',     label: 'General' },
+]
+
+const activeFilter = ref('all')
+
+const filteredPlans = computed(() =>
+  activeFilter.value === 'all'
+    ? store.plans
+    : store.plans.filter(p => p.goal === activeFilter.value)
+)
+
 function planColor(_plan: WorkoutPlan, index: number) {
   return PLAN_COLORS[index % PLAN_COLORS.length]
 }
@@ -115,6 +144,38 @@ function confirmDelete(plan: WorkoutPlan) {
 
 <style scoped>
 .header-actions { display: flex; gap: 8px; }
+
+/* ── Filter chips ────────────────────────────────────────────────────────── */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+}
+.filter-chips::-webkit-scrollbar { display: none; }
+
+.filter-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.filter-chip.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
 
 .header-icon-btn {
   width: 36px;

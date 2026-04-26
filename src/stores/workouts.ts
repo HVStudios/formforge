@@ -292,6 +292,21 @@ export const useWorkoutsStore = defineStore('workouts', () => {
 
   const totalWorkouts = computed(() => logs.value.length)
 
+  /** Total kg lifted this calendar week (Mon–Sun) across completed sets */
+  const weeklyVolume = computed(() => {
+    const now = new Date()
+    const dayOfWeek = (now.getDay() + 6) % 7 // 0=Mon, 6=Sun
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - dayOfWeek)
+    weekStart.setHours(0, 0, 0, 0)
+    return logs.value
+      .filter(l => l.completedAt && new Date(l.startedAt) >= weekStart)
+      .reduce((total, log) =>
+        total + log.exercises.reduce((xt, ex) =>
+          xt + ex.sets.reduce((st, s) =>
+            st + (s.completed && s.weight && s.reps ? s.weight * s.reps : 0), 0), 0), 0)
+  })
+
   // ─── Personal Records ────────────────────────────
   /** Epley estimated 1-rep-max */
   function e1rm(weight: number, reps: number): number {
@@ -403,6 +418,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     getLog,
     recentLogs,
     weeklyCount,
+    weeklyVolume,
     totalWorkouts,
     prMap,
     e1rm,

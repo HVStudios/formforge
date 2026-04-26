@@ -25,6 +25,7 @@
             <div class="xp-hero-lbl">
               <span class="xp-hero-lbl-text">LEVEL</span>
               <span class="xp-hero-num">{{ gStore.level }}</span>
+              <span class="xp-hero-rank">{{ gStore.levelName }}</span>
             </div>
             <div class="xp-hero-sub mono">
               <span style="color: var(--text); font-weight: 700">{{ gStore.xp.toLocaleString() }}</span>
@@ -95,9 +96,9 @@
           <span class="stat-label">workouts</span>
         </div>
         <div class="stat-card card">
-          <span class="stat-sub">Total</span>
-          <span class="stat-value">{{ store.totalWorkouts }}</span>
-          <span class="stat-label">sessions</span>
+          <span class="stat-sub">Volume</span>
+          <span class="stat-value">{{ formatVolume(store.weeklyVolume) }}</span>
+          <span class="stat-label">kg this week</span>
         </div>
       </div>
 
@@ -231,6 +232,47 @@
         </div>
       </div>
 
+      <!-- Weekly Mission card -->
+      <div v-if="activeMission" class="reveal reveal-d4">
+        <div class="section-label-row">
+          <span class="section-label">WEEKLY MISSION</span>
+          <span class="section-label mono">{{ missionTimeLeft }}</span>
+        </div>
+        <RouterLink to="/profile" class="mission-card card" style="text-decoration:none;color:inherit">
+          <div class="mission-card-inner">
+            <div class="mission-icon-wrap">{{ activeMission.icon }}</div>
+            <div class="mission-info">
+              <div class="mission-title">{{ activeMission.title }}</div>
+              <div class="mission-desc text-muted">{{ activeMission.description }} · +{{ activeMission.xp }} XP</div>
+            </div>
+            <div class="mission-frac">
+              {{ Math.min(gStore.getMissionProgress(activeMission.id), activeMission.target) }}<span class="stat-faint">/{{ activeMission.target }}</span>
+            </div>
+          </div>
+          <div class="mission-bar-track">
+            <div class="mission-bar-fill" :style="{ width: missionPct + '%' }" />
+          </div>
+        </RouterLink>
+      </div>
+
+      <!-- Recent Unlocks strip -->
+      <div v-if="recentUnlocks.length > 0" class="reveal reveal-d4">
+        <div class="section-label-row" style="margin-top:14px">
+          <span class="section-label">RECENT UNLOCKS</span>
+        </div>
+        <div class="unlocks-strip">
+          <RouterLink
+            v-for="ach in recentUnlocks"
+            :key="ach.id"
+            to="/profile"
+            class="unlock-badge card"
+          >
+            <div class="unlock-icon-wrap" :class="`unlock-icon-wrap--${ach.rarity}`">{{ ach.icon }}</div>
+            <div class="unlock-label">{{ ach.title }}</div>
+          </RouterLink>
+        </div>
+      </div>
+
       <!-- Quick actions -->
       <h2 class="section-title reveal reveal-d4">Quick Start</h2>
       <div class="quick-actions reveal reveal-d4">
@@ -297,6 +339,7 @@ import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
 import type { WorkoutPlan } from '../types'
 import StepsSheet from '../components/StepsSheet.vue'
 import { useGamificationStore } from '../stores/gamification'
+import { ACHIEVEMENTS, WEEKLY_MISSIONS } from '../utils/gamificationDefs'
 
 const store     = useWorkoutsStore()
 const authStore = useAuthStore()
@@ -452,6 +495,37 @@ const currentStreak = computed(() => {
   if (days.has(yesterday.toISOString().slice(0, 10))) return check(yesterday)
   return 0
 })
+
+// ── Weekly mission ────────────────────────────────────────────────────────────
+const activeMission = computed(() =>
+  WEEKLY_MISSIONS.find(m => !gStore.isMissionCompleted(m.id)) ?? null
+)
+
+const missionPct = computed(() => {
+  if (!activeMission.value) return 0
+  const m = activeMission.value
+  return Math.min(100, Math.round((gStore.getMissionProgress(m.id) / m.target) * 100))
+})
+
+const missionTimeLeft = computed(() => {
+  const now = new Date()
+  const dayOfWeek = (now.getDay() + 6) % 7
+  const daysLeft = 6 - dayOfWeek
+  const hoursLeft = 23 - now.getHours()
+  if (daysLeft === 0) return `${hoursLeft}H LEFT`
+  return `${daysLeft}D ${hoursLeft}H LEFT`
+})
+
+// ── Recent unlocks ────────────────────────────────────────────────────────────
+const recentUnlocks = computed(() =>
+  ACHIEVEMENTS.filter(a => gStore.achievements.includes(a.id)).slice(-4).reverse()
+)
+
+// ── Volume formatter ──────────────────────────────────────────────────────────
+function formatVolume(kg: number): string {
+  if (kg >= 1000) return (kg / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  return kg.toFixed(0)
+}
 </script>
 
 <style scoped>
@@ -988,4 +1062,108 @@ const currentStreak = computed(() => {
   font-weight: 600;
 }
 .tip-setup-link:hover { opacity: 0.8; }
+
+/* ── XP rank name ─────────────────────────────────────────────────────────── */
+.xp-hero-rank {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Weekly mission card ──────────────────────────────────────────────────── */
+.mission-card {
+  display: block;
+  margin-bottom: 14px;
+}
+.mission-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.mission-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(212, 255, 58, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;
+  flex-shrink: 0;
+}
+[data-theme="light"] .mission-icon-wrap {
+  background: rgba(20, 20, 15, 0.08);
+}
+.mission-info { flex: 1; min-width: 0; }
+.mission-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.mission-desc {
+  font-size: 0.6875rem;
+  margin-top: 2px;
+}
+.mission-frac {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.mission-bar-track {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.mission-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--flame) 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(212, 255, 58, 0.4);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="light"] .mission-bar-fill { box-shadow: none; }
+
+/* ── Recent unlocks strip ─────────────────────────────────────────────────── */
+.unlocks-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+}
+.unlocks-strip::-webkit-scrollbar { display: none; }
+.unlock-badge {
+  flex: 0 0 auto;
+  min-width: 92px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.15s;
+}
+.unlock-badge:active { opacity: 0.8; }
+.unlock-icon-wrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.unlock-icon-wrap--legendary { background: rgba(212, 255, 58, 0.18); }
+.unlock-icon-wrap--epic       { background: rgba(106, 255, 209, 0.18); }
+.unlock-icon-wrap--rare       { background: rgba(255, 138, 61, 0.18); }
+.unlock-icon-wrap--common     { background: var(--surface-2); }
+.unlock-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
 </style>

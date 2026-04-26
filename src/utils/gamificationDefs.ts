@@ -19,6 +19,30 @@ export function levelProgress(xp: number): number {
   return (xp - cur) / (nxt - cur)
 }
 
+/** Level 17 = Iron Wolf per the design spec. Ranks increase every ~5 levels. */
+const LEVEL_RANKS: { min: number; name: string }[] = [
+  { min: 1,   name: 'Raw Iron' },
+  { min: 6,   name: 'Iron Pup' },
+  { min: 11,  name: 'Bronze Wolf' },
+  { min: 16,  name: 'Iron Wolf' },
+  { min: 21,  name: 'Steel Wolf' },
+  { min: 26,  name: 'Silver Bear' },
+  { min: 31,  name: 'Iron Bear' },
+  { min: 41,  name: 'Gold Bear' },
+  { min: 51,  name: 'Platinum Forge' },
+  { min: 76,  name: 'Diamond Forge' },
+  { min: 101, name: 'Legendary Forger' },
+]
+
+export function levelRankName(level: number): string {
+  let name = LEVEL_RANKS[0].name
+  for (const r of LEVEL_RANKS) {
+    if (level >= r.min) name = r.name
+    else break
+  }
+  return name
+}
+
 // ─── Week helpers (ISO week, Monday-based) ────────────────────────────────────
 export function getWeekKey(date = new Date()): string {
   const d = new Date(date)
