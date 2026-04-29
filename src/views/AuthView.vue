@@ -137,18 +137,20 @@ async function continueAnon() {
 }
 
 function friendlyError(e: unknown): string {
-  const code = (e as { code?: string })?.code ?? ''
-  const map: Record<string, string> = {
-    'auth/email-already-in-use':      'An account with this email already exists.',
-    'auth/invalid-email':             'Invalid email address.',
-    'auth/weak-password':             'Password must be at least 6 characters.',
-    'auth/user-not-found':            'No account found with this email.',
-    'auth/wrong-password':            'Incorrect password.',
-    'auth/invalid-credential':        'Incorrect email or password.',
-    'auth/too-many-requests':         'Too many attempts. Please try again later.',
-    'auth/credential-already-in-use': 'This email is already linked to another account.',
-  }
-  return map[code] ?? 'Something went wrong. Please try again.'
+  const msg = ((e as { message?: string })?.message ?? '').toLowerCase()
+  if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already exists'))
+    return 'An account with this email already exists.'
+  if (msg.includes('invalid email'))
+    return 'Invalid email address.'
+  if (msg.includes('password') && (msg.includes('least') || msg.includes('short') || msg.includes('weak')))
+    return 'Password must be at least 6 characters.'
+  if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('email not confirmed'))
+    return 'Incorrect email or password.'
+  if (msg.includes('rate limit') || msg.includes('too many'))
+    return 'Too many attempts. Please try again later.'
+  if (msg.includes('email address cannot be used'))
+    return 'This email is already linked to another account.'
+  return 'Something went wrong. Please try again.'
 }
 </script>
 

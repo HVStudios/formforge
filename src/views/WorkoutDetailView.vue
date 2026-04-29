@@ -39,18 +39,27 @@
           </div>
         </div>
 
-        <!-- Volume + streak row -->
+        <!-- Volume / distance + streak row -->
         <div class="wide-row">
           <div class="wide-card">
-            <div class="wide-label">TOTAL VOLUME</div>
-            <div class="wide-val">
-              {{ totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'k' : totalVolume }}
-              <span class="wide-unit">kg</span>
-            </div>
+            <template v-if="isAllRunning">
+              <div class="wide-label">TOTAL DISTANCE</div>
+              <div class="wide-val">
+                {{ totalDistanceKm % 1 === 0 ? totalDistanceKm : totalDistanceKm.toFixed(1) }}
+                <span class="wide-unit">km</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="wide-label">TOTAL VOLUME</div>
+              <div class="wide-val">
+                {{ totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'k' : totalVolume }}
+                <span class="wide-unit">kg</span>
+              </div>
+            </template>
           </div>
           <div class="wide-card wide-card-streak">
             <div class="wide-label">STREAK</div>
-            <div class="wide-val wide-val-streak">{{ currentStreak }}<span class="streak-fire">🔥</span></div>
+            <div class="wide-val wide-val-streak">{{ gStore.streak }}<span class="streak-fire">🔥</span></div>
           </div>
         </div>
 
@@ -73,18 +82,31 @@
 
             <!-- Set rows header -->
             <div class="breakdown-col-header">
-              <div>SET</div><div>KG</div><div>REPS</div><div></div>
+              <div>SET</div>
+              <div>{{ isRunningExercise(ex.exerciseId) ? 'KM' : 'KG' }}</div>
+              <div>{{ isRunningExercise(ex.exerciseId) ? 'MIN' : 'REPS' }}</div>
+              <div></div>
             </div>
 
             <!-- Set rows -->
             <div v-for="(set, si) in ex.sets" :key="si" class="breakdown-set-row">
               <div class="bsr-num">{{ si + 1 }}</div>
-              <div class="bsr-val" :class="{ accent: set.completed && isSetPR(ex.exerciseId, set) }">
-                {{ set.weight != null ? set.weight : '—' }}
-              </div>
-              <div class="bsr-val" :class="{ accent: set.completed && isSetPR(ex.exerciseId, set) }">
-                {{ set.reps != null ? set.reps : '—' }}
-              </div>
+              <template v-if="isRunningExercise(ex.exerciseId)">
+                <div class="bsr-val">
+                  {{ readLoggedDistanceKm(set) != null ? readLoggedDistanceKm(set) : '—' }}
+                </div>
+                <div class="bsr-val">
+                  {{ set.durationMin != null ? set.durationMin : '—' }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="bsr-val" :class="{ accent: set.completed && isSetPR(ex.exerciseId, set) }">
+                  {{ set.weight != null ? set.weight : '—' }}
+                </div>
+                <div class="bsr-val" :class="{ accent: set.completed && isSetPR(ex.exerciseId, set) }">
+                  {{ set.reps != null ? set.reps : '—' }}
+                </div>
+              </template>
               <div class="bsr-check" :class="{ done: set.completed, skipped: !set.completed }">
                 {{ set.completed ? '✓' : '' }}
               </div>
@@ -110,8 +132,7 @@ import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { useGamificationStore } from '../stores/gamification'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
-import { isRunningExercise } from '../data/exercises'
-import { computeWorkoutStreak } from '../utils/gamificationDefs'
+import { isRunningExercise, readLoggedDistanceKm } from '../data/exercises'
 import type { LoggedExercise, LoggedSet } from '../types'
 
 const props  = defineProps<{ id: string }>()
@@ -120,11 +141,6 @@ const store  = useWorkoutsStore()
 const gStore = useGamificationStore()
 
 const log = computed(() => store.getLog(props.id))
-
-const currentStreak = computed(() => {
-  const completedLogs = store.logs.filter(l => l.completedAt != null)
-  return computeWorkoutStreak(completedLogs)
-})
 
 const totalSets = computed(() =>
   log.value?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0) ?? 0
@@ -135,6 +151,27 @@ const totalVolume = computed(() =>
     tot + ex.sets.reduce((st, s) =>
       st + (s.completed && s.weight && s.reps ? s.weight * s.reps : 0), 0), 0) ?? 0
 )
+
+/** True when every exercise in the log is a run-* exercise. */
+const isAllRunning = computed(() =>
+  !!log.value && log.value.exercises.length > 0 &&
+  log.value.exercises.every(ex => isRunningExercise(ex.exerciseId))
+)
+
+/** Total distance in km across completed running sets (works with legacy `reps` data). */
+const totalDistanceKm = computed(() => {
+  if (!log.value) return 0
+  let total = 0
+  for (const ex of log.value.exercises) {
+    if (!isRunningExercise(ex.exerciseId)) continue
+    for (const s of ex.sets) {
+      if (!s.completed) continue
+      const km = readLoggedDistanceKm(s)
+      if (km != null) total += km
+    }
+  }
+  return total
+})
 
 const xpEarned = computed(() => Math.round(totalSets.value * 14))
 

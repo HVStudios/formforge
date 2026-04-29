@@ -38,6 +38,10 @@ export interface Exercise {
 export interface PlannedSet {
   targetReps: number
   targetWeight: number
+  /** Running: planned distance in km. Optional, only set for run-* exercises. */
+  targetDistanceKm?: number
+  /** Running: planned duration in whole minutes. Optional. */
+  targetDurationMin?: number
 }
 
 /** An exercise slot inside a workout plan */
@@ -67,6 +71,10 @@ export interface LoggedSet {
   reps: number | null
   weight: number | null
   completed: boolean
+  /** Running: logged distance in km. Optional, only set for run-* exercises. */
+  distanceKm?: number | null
+  /** Running: logged duration in whole minutes. Optional. */
+  durationMin?: number | null
 }
 
 /** An exercise logged during an actual workout */

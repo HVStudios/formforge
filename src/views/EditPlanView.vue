@@ -106,8 +106,8 @@
           <!-- Sets header row -->
           <div class="sets-col-header">
             <div class="set-col-num">SET</div>
-            <div class="set-col-field">KG</div>
-            <div class="set-col-field">REPS</div>
+            <div class="set-col-field">{{ isRunningExercise(pe.exerciseId) ? 'KM' : 'KG' }}</div>
+            <div class="set-col-field">{{ isRunningExercise(pe.exerciseId) ? 'MIN' : 'REPS' }}</div>
             <div class="set-col-del" />
           </div>
 
@@ -115,20 +115,41 @@
           <div class="planned-sets">
             <div v-for="(set, si) in pe.sets" :key="si" class="planned-set-row">
               <div class="set-num">{{ si + 1 }}</div>
-              <input
-                v-model.number="set.targetWeight"
-                type="number"
-                inputmode="decimal"
-                placeholder="0"
-                class="plan-input"
-              />
-              <input
-                v-model.number="set.targetReps"
-                type="number"
-                inputmode="numeric"
-                placeholder="0"
-                class="plan-input"
-              />
+              <template v-if="isRunningExercise(pe.exerciseId)">
+                <input
+                  v-model.number="set.targetDistanceKm"
+                  type="number"
+                  inputmode="decimal"
+                  step="0.5"
+                  min="0"
+                  placeholder="km"
+                  class="plan-input"
+                />
+                <input
+                  v-model.number="set.targetDurationMin"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  placeholder="min"
+                  class="plan-input"
+                />
+              </template>
+              <template v-else>
+                <input
+                  v-model.number="set.targetWeight"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="0"
+                  class="plan-input"
+                />
+                <input
+                  v-model.number="set.targetReps"
+                  type="number"
+                  inputmode="numeric"
+                  placeholder="0"
+                  class="plan-input"
+                />
+              </template>
               <button class="set-del-btn" @click="removeSet(pe, si)">✕</button>
             </div>
           </div>
@@ -174,7 +195,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { nanoid } from '../utils/nanoid'
-import { getExerciseById, getExerciseName, CATEGORY_LABELS } from '../data/exercises'
+import { getExerciseById, getExerciseName, CATEGORY_LABELS, isRunningExercise } from '../data/exercises'
 import type { Exercise, PlanExercise, PlannedSet, PlanGoal, PlanDifficulty } from '../types'
 import ExerciseSelector from '../components/ExerciseSelector.vue'
 
@@ -212,6 +233,16 @@ const plan = reactive(
            : store.createEmptyPlan()
 )
 
+// Migrate legacy running plans where distance was stored in `targetReps`.
+// Running plans saved before the dedicated running fields existed used
+// `targetReps` to mean "km" and `targetWeight` was always 0.
+for (const pe of plan.exercises as PlanExercise[]) {
+  if (!isRunningExercise(pe.exerciseId)) continue
+  for (const s of pe.sets) {
+    if (s.targetDistanceKm == null && s.targetReps) s.targetDistanceKm = s.targetReps
+  }
+}
+
 onMounted(() => {
   if (props.id && !store.getPlan(props.id)) {
     router.replace({ name: 'plans' })
@@ -226,10 +257,14 @@ const xpMax = computed(() => Math.max(80, totalSets.value * 14))
 const estimatedMinutes = computed(() => Math.max(20, totalSets.value * 2 + plan.exercises.length * 3))
 
 function addExercise(ex: Exercise) {
+  const isRun = isRunningExercise(ex.id)
   const pe: PlanExercise = {
     uid: nanoid(),
     exerciseId: ex.id,
-    sets: [{ targetReps: 10, targetWeight: 0 }],
+    sets: [isRun
+      ? { targetReps: 0, targetWeight: 0, targetDistanceKm: 5 }
+      : { targetReps: 10, targetWeight: 0 }
+    ],
     notes: '',
   }
   plan.exercises.push(pe)
@@ -241,10 +276,18 @@ function removeExercise(idx: number) {
 
 function addSet(pe: PlanExercise) {
   const last = pe.sets.at(-1)
-  const newSet: PlannedSet = {
-    targetReps: last?.targetReps ?? 10,
-    targetWeight: last?.targetWeight ?? 0,
-  }
+  const isRun = isRunningExercise(pe.exerciseId)
+  const newSet: PlannedSet = isRun
+    ? {
+        targetReps: 0,
+        targetWeight: 0,
+        targetDistanceKm:  last?.targetDistanceKm  ?? 5,
+        targetDurationMin: last?.targetDurationMin,
+      }
+    : {
+        targetReps:   last?.targetReps   ?? 10,
+        targetWeight: last?.targetWeight ?? 0,
+      }
   pe.sets.push(newSet)
 }
 
