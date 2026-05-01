@@ -46,12 +46,12 @@ watch(
   async user => {
     if (user) {
       try {
-        await workoutsStore.loadFromSupabase(user.id)
+        await workoutsStore.loadFromFirestore(user.uid)
       } catch (err) {
-        console.error('Supabase load failed, using local data:', err)
+        console.error('Firestore load failed, using local data:', err)
       }
       try {
-        await gamificationStore.loadFromSupabase(user.id)
+        await gamificationStore.loadFromFirestore(user.uid)
         await gamificationStore.evaluate()
       } catch (err) {
         console.error('Gamification load failed:', err)

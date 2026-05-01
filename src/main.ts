@@ -11,7 +11,7 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Resolve Supabase auth state before mounting so the router guard has a user
+// Resolve Firebase auth state before mounting so the router guard has a user
 // reference on the very first navigation.
 const authStore = useAuthStore()
 authStore.init().then(() => {

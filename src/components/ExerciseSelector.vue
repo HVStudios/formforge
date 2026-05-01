@@ -9,54 +9,50 @@
 
         <!-- ── Standard header ──────────────────────── -->
         <div v-if="!creatingCustom" class="sheet-header">
-          <div class="sheet-header-row">
-            <div class="sheet-title">Add exercise</div>
-            <div class="sheet-count mono">{{ totalFiltered }} IN LIBRARY</div>
+          <div class="flex items-center justify-between mb-12">
+            <h2>Add Exercise</h2>
+            <button class="btn btn-ghost btn-icon" @click="close">✕</button>
           </div>
+          <input
+            v-model="search"
+            class="input"
+            placeholder="Search exercises..."
+            type="search"
+            autofocus
+          />
 
-          <!-- Pill search with accent focus ring -->
-          <div class="search-pill" :class="{ focused: searchFocused }">
-            <span class="search-icon">⌕</span>
-            <input
-              v-model="search"
-              class="search-input"
-              placeholder="Search exercises…"
-              type="search"
-              autocomplete="off"
-              @focus="searchFocused = true"
-              @blur="searchFocused = false"
-            />
-          </div>
-
-          <!-- Muscle group filter chips -->
+          <!-- Muscle group filter -->
           <div class="filter-row">
             <button
               v-for="cat in allCategories"
               :key="cat.value"
-              class="filter-chip"
+              class="filter-pill"
               :class="{ active: selectedCategory === cat.value }"
               @click="selectedCategory = cat.value"
-            >{{ cat.label }}</button>
+            >
+              {{ cat.icon }} {{ cat.label }}
+            </button>
           </div>
 
           <!-- Equipment filter -->
-          <div class="filter-row">
+          <div class="filter-row equipment-row">
             <button
               v-for="eq in allEquipment"
               :key="eq.value"
-              class="filter-chip"
+              class="filter-pill eq-pill"
               :class="{ active: selectedEquipment === eq.value }"
               @click="selectedEquipment = eq.value"
-            >{{ eq.label }}</button>
+            >
+              {{ eq.icon }} {{ eq.label }}
+            </button>
           </div>
         </div>
 
         <!-- ── Create custom header ─────────────────── -->
         <div v-else class="sheet-header">
-          <div class="sheet-header-row">
-            <button class="circle-btn" @click="cancelCreate">‹</button>
-            <div class="sheet-title">Create Exercise</div>
-            <div style="width:36px" />
+          <div class="flex items-center gap-8 mb-12">
+            <button class="btn btn-ghost btn-icon" @click="cancelCreate">←</button>
+            <h2>Create Exercise</h2>
           </div>
         </div>
 
@@ -77,45 +73,65 @@
             </div>
           </template>
 
-          <!-- Grouped view -->
+          <!-- Grouped view (All category, no search) -->
           <template v-else-if="isGrouped">
-            <div v-for="group in grouped" :key="group.category" class="exercise-group">
-              <div class="group-label">{{ group.label }}</div>
-              <div class="exercise-cards">
-                <button v-for="ex in group.exercises" :key="ex.id" class="exercise-card" @click="select(ex)">
-                  <div class="exercise-card-body">
-                    <div class="exercise-name">
-                      {{ ex.name }}
-                      <span v-if="ex.custom" class="custom-tag">Custom</span>
-                    </div>
-                    <span class="exercise-tag">{{ EQUIPMENT_LABELS[ex.equipment] }}</span>
-                  </div>
-                  <div class="exercise-add-btn">+</div>
-                </button>
+            <div
+              v-for="group in grouped"
+              :key="group.category"
+              class="exercise-group"
+            >
+              <div class="group-header">
+                <span class="group-icon">{{ group.icon }}</span>
+                <span class="group-label">{{ group.label }}</span>
+                <span class="group-count">{{ group.exercises.length }}</span>
               </div>
-            </div>
-          </template>
-
-          <!-- Flat filtered view -->
-          <template v-else>
-            <div class="exercise-cards">
-              <button v-for="ex in flatFiltered" :key="ex.id" class="exercise-card" @click="select(ex)">
-                <div class="exercise-card-body">
+              <button
+                v-for="ex in group.exercises"
+                :key="ex.id"
+                class="exercise-row"
+                @click="select(ex)"
+              >
+                <div>
                   <div class="exercise-name">
                     {{ ex.name }}
                     <span v-if="ex.custom" class="custom-tag">Custom</span>
                   </div>
                   <div class="exercise-meta text-xs text-muted">
-                    {{ selectedCategory === 'all' ? CATEGORY_LABELS[ex.category] + ' · ' : '' }}{{ EQUIPMENT_LABELS[ex.equipment] }}
+                    {{ EQUIPMENT_LABELS[ex.equipment] }}
                   </div>
                 </div>
-                <div class="exercise-add-btn">+</div>
+                <span class="add-icon">+</span>
               </button>
             </div>
           </template>
 
-          <!-- Create custom -->
-          <button v-if="totalFiltered > 0" class="create-custom-btn" @click="startCreate(search)">
+          <!-- Flat filtered view -->
+          <template v-else>
+            <button
+              v-for="ex in flatFiltered"
+              :key="ex.id"
+              class="exercise-row"
+              @click="select(ex)"
+            >
+              <div>
+                <div class="exercise-name">
+                  {{ ex.name }}
+                  <span v-if="ex.custom" class="custom-tag">Custom</span>
+                </div>
+                <div class="exercise-meta text-xs text-muted">
+                  {{ selectedCategory === 'all' ? CATEGORY_LABELS[ex.category] + ' · ' : '' }}{{ EQUIPMENT_LABELS[ex.equipment] }}
+                </div>
+              </div>
+              <span class="add-icon">+</span>
+            </button>
+          </template>
+
+          <!-- Create custom button -->
+          <button
+            v-if="totalFiltered > 0"
+            class="create-custom-btn"
+            @click="startCreate(search)"
+          >
             + Create custom exercise
           </button>
         </div>
@@ -142,7 +158,9 @@
                 class="pill"
                 :class="{ active: customCategory === cat.value }"
                 @click="customCategory = cat.value"
-              >{{ cat.icon }} {{ cat.label }}</button>
+              >
+                {{ cat.icon }} {{ cat.label }}
+              </button>
             </div>
           </div>
 
@@ -155,7 +173,9 @@
                 class="pill"
                 :class="{ active: customEquipment === eq.value }"
                 @click="customEquipment = eq.value"
-              >{{ eq.icon }} {{ eq.label }}</button>
+              >
+                {{ eq.icon }} {{ eq.label }}
+              </button>
             </div>
           </div>
 
@@ -187,15 +207,14 @@ const emit = defineEmits<{
 
 const store = useWorkoutsStore()
 
-const search            = ref('')
-const searchFocused     = ref(false)
+const search           = ref('')
 const selectedCategory  = ref('all')
 const selectedEquipment = ref('all')
-const creatingCustom    = ref(false)
-const customName        = ref('')
-const customCategory    = ref<ExerciseCategory>('other')
-const customEquipment   = ref<Equipment>('other')
-const nameInput         = ref<HTMLInputElement | null>(null)
+const creatingCustom   = ref(false)
+const customName       = ref('')
+const customCategory   = ref<ExerciseCategory>('other')
+const customEquipment  = ref<Equipment>('other')
+const nameInput        = ref<HTMLInputElement | null>(null)
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell:    'Barbell',
@@ -207,24 +226,24 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 }
 
 const allCategories = [
-  { value: 'all',       label: 'All' },
-  { value: 'chest',     label: 'Chest' },
-  { value: 'back',      label: 'Back' },
-  { value: 'legs',      label: 'Legs' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'arms',      label: 'Arms' },
-  { value: 'core',      label: 'Core' },
-  { value: 'cardio',    label: 'Cardio' },
+  { value: 'all',       label: 'All',       icon: '✦' },
+  { value: 'chest',     label: 'Chest',     icon: '💪' },
+  { value: 'back',      label: 'Back',      icon: '🔙' },
+  { value: 'legs',      label: 'Legs',      icon: '🦵' },
+  { value: 'shoulders', label: 'Shoulders', icon: '🏔️' },
+  { value: 'arms',      label: 'Arms',      icon: '💪' },
+  { value: 'core',      label: 'Core',      icon: '🔥' },
+  { value: 'cardio',    label: 'Cardio',    icon: '🏃' },
 ]
 
 const allEquipment = [
-  { value: 'all',        label: 'All' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'dumbbell',   label: 'Dumbbell' },
-  { value: 'barbell',    label: 'Barbell' },
-  { value: 'cable',      label: 'Cable' },
-  { value: 'machine',    label: 'Machine' },
-  { value: 'other',      label: 'Other' },
+  { value: 'all',        label: 'All',        icon: '✦' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '🤸' },
+  { value: 'dumbbell',   label: 'Dumbbell',   icon: '🏋️' },
+  { value: 'barbell',    label: 'Barbell',    icon: '🔩' },
+  { value: 'cable',      label: 'Cable',      icon: '🔗' },
+  { value: 'machine',    label: 'Machine',    icon: '⚙️' },
+  { value: 'other',      label: 'Other',      icon: '📦' },
 ]
 
 const exerciseCategories = [
@@ -247,15 +266,15 @@ const equipmentOptions = [
   { value: 'other',      label: 'Other',      icon: '📦' },
 ]
 
-const CATEGORY_GROUP_META: Record<string, { label: string; order: number }> = {
-  chest:     { label: 'CHEST',     order: 0 },
-  back:      { label: 'BACK',      order: 1 },
-  legs:      { label: 'LEGS',      order: 2 },
-  shoulders: { label: 'SHOULDERS', order: 3 },
-  arms:      { label: 'ARMS',      order: 4 },
-  core:      { label: 'CORE',      order: 5 },
-  cardio:    { label: 'CARDIO',    order: 6 },
-  other:     { label: 'OTHER',     order: 7 },
+const CATEGORY_GROUP_META: Record<string, { label: string; icon: string; order: number }> = {
+  chest:     { label: 'Chest',     icon: '💪', order: 0 },
+  back:      { label: 'Back',      icon: '🔙', order: 1 },
+  legs:      { label: 'Legs',      icon: '🦵', order: 2 },
+  shoulders: { label: 'Shoulders', icon: '🏔️', order: 3 },
+  arms:      { label: 'Arms',      icon: '💪', order: 4 },
+  core:      { label: 'Core',      icon: '🔥', order: 5 },
+  cardio:    { label: 'Cardio',    icon: '🏃', order: 6 },
+  other:     { label: 'Other',     icon: '📦', order: 7 },
 }
 
 const allExercises = computed<Exercise[]>(() => [
@@ -263,6 +282,7 @@ const allExercises = computed<Exercise[]>(() => [
   ...store.customExercises,
 ])
 
+/** Apply equipment + category + search filters */
 function applyFilters(list: Exercise[]): Exercise[] {
   if (selectedEquipment.value !== 'all') {
     list = list.filter(e => e.equipment === selectedEquipment.value)
@@ -277,10 +297,12 @@ function applyFilters(list: Exercise[]): Exercise[] {
   return list
 }
 
+/** Show grouped sections when browsing with no active search */
 const isGrouped = computed(() =>
   selectedCategory.value === 'all' && !search.value.trim()
 )
 
+/** Grouped by muscle category (for browse mode) */
 const grouped = computed(() => {
   const filtered = applyFilters(allExercises.value)
   const map = new Map<string, Exercise[]>()
@@ -292,13 +314,15 @@ const grouped = computed(() => {
   return [...map.entries()]
     .map(([cat, exercises]) => ({
       category: cat,
-      label: CATEGORY_GROUP_META[cat]?.label ?? cat.toUpperCase(),
+      label: CATEGORY_GROUP_META[cat]?.label ?? cat,
+      icon:  CATEGORY_GROUP_META[cat]?.icon ?? '•',
       order: CATEGORY_GROUP_META[cat]?.order ?? 99,
       exercises,
     }))
     .sort((a, b) => a.order - b.order)
 })
 
+/** Flat list (for filtered / search mode) */
 const flatFiltered = computed(() => applyFilters(allExercises.value))
 
 const totalFiltered = computed(() =>
@@ -344,6 +368,7 @@ function cancelCreate() {
 function confirmCreate() {
   const name = customName.value.trim()
   if (!name) return
+
   const ex: Exercise = {
     id: `custom-${nanoid()}`,
     name,
@@ -357,207 +382,141 @@ function confirmCreate() {
 </script>
 
 <style scoped>
-/* ── Sheet header ─────────────────────────────────────────── */
-.sheet-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.sheet-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.sheet-count {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.08em;
-}
-
-.circle-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  color: var(--text);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-/* ── Pill search ─────────────────────────────────────────── */
-.search-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 999px;
-  padding: 10px 16px;
-  margin-bottom: 10px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.search-pill.focused {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
-}
-
-.search-icon {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.search-pill.focused .search-icon { color: var(--accent); }
-
-.search-input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-size: 0.875rem;
-  color: var(--text);
-  min-width: 0;
-}
-.search-input::placeholder { color: var(--text-muted); }
-.search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
-
-/* ── Filter chips ─────────────────────────────────────────── */
+/* ── Filter rows ──────────────────────────────── */
 .filter-row {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-top: 6px;
+  padding-top: 10px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 .filter-row::-webkit-scrollbar { display: none; }
 
-.filter-chip {
+.equipment-row { padding-top: 6px; }
+
+.filter-pill {
   flex-shrink: 0;
   padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  white-space: nowrap;
 }
-.filter-chip.active {
-  background: var(--accent);
+
+/* Category pills — primary (blue) */
+.filter-pill.active {
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Equipment pills — accent (purple) when active */
+.eq-pill.active {
+  background: var(--accent-dim);
   border-color: var(--accent);
-  color: var(--accent-ink);
+  color: var(--accent);
 }
 
-/* ── Group label ──────────────────────────────────────────── */
-.exercise-group { margin-bottom: 4px; }
+/* ── Grouped sections ──────────────────────────── */
+.exercise-group {
+  margin-bottom: 4px;
+}
 
-.group-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.12em;
-  padding: 14px 0 8px;
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 6px;
   position: sticky;
   top: 0;
   background: var(--surface);
   z-index: 1;
+  /* subtle blur to blend with glass bg */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* ── Exercise cards ───────────────────────────────────────── */
-.exercise-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.group-icon { font-size: 1rem; }
+
+.group-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
 }
 
-.exercise-card {
+.group-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--card);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+/* ── Exercise rows ─────────────────────────────── */
+.exercise-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding: 13px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.1s, background 0.1s;
+  transition: background 0.1s;
+  border-radius: var(--radius-sm);
 }
-.exercise-card:active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
-
-.exercise-card-body { flex: 1; }
+.exercise-row:last-child { border-bottom: none; }
+.exercise-row:active { background: var(--card); }
 
 .exercise-name {
-  font-family: var(--font-display);
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.exercise-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-  margin-top: 4px;
 }
 
 .exercise-meta {
   margin-top: 2px;
 }
 
-.exercise-add-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-left: 10px;
-}
-
 .custom-tag {
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 100px;
-  background: color-mix(in srgb, var(--cool) 13%, transparent);
-  color: var(--cool);
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
-/* ── Empty / no-results ─────────────────────────────────── */
+.add-icon {
+  font-size: 1.25rem;
+  color: var(--primary);
+  font-weight: 700;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Empty / no-results ────────────────────────── */
 .no-results {
   padding: 32px 0 8px;
   text-align: center;
 }
 
-/* ── Create custom button ───────────────────────────────── */
+/* ── Create custom button ─────────────────────── */
 .create-custom-btn {
   width: 100%;
   margin-top: 16px;
@@ -571,15 +530,24 @@ function confirmCreate() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.create-custom-btn:active {
-  border-color: var(--accent);
-  color: var(--accent);
+.create-custom-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
 }
 
-/* ── Create form ─────────────────────────────────────────── */
-.create-form { display: flex; flex-direction: column; gap: 4px; }
+/* ── Create form ──────────────────────────────── */
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-.pill-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 .pill {
   padding: 7px 14px;
@@ -593,10 +561,8 @@ function confirmCreate() {
   transition: all 0.15s;
 }
 .pill.active {
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  color: var(--primary);
 }
-
-.mono { font-family: var(--font-mono); }
 </style>

@@ -173,28 +173,9 @@
 
       <!-- ── LOADING ──────────────────────────────── -->
       <div v-else-if="step === 'loading'" class="loading-state">
-        <!-- Pulse rings -->
-        <div class="pulse-wrap">
-          <div class="pulse-ring pulse-ring-1" />
-          <div class="pulse-ring pulse-ring-2" />
-          <div class="pulse-ring pulse-ring-3" />
-          <div class="pulse-orb">✦</div>
-        </div>
-
-        <div class="loading-title">{{ mode === 'running' ? 'Forging your plan…' : 'Forging your plan…' }}</div>
-        <div class="loading-sub text-muted">Analyzing templates and your preferences.</div>
-
-        <!-- XP bar progress -->
-        <div class="loading-bar-wrap">
-          <div class="loading-bar-fill" />
-        </div>
-
-        <!-- Status log -->
-        <div class="loading-log mono">
-          <div class="loading-log-done">✓ Goal locked: {{ mode === 'gym' ? gymPrefs.goal : runPrefs.goal }}</div>
-          <div class="loading-log-done">✓ {{ mode === 'gym' ? gymPrefs.daysPerWeek : runPrefs.daysPerWeek }}-day split selected</div>
-          <div class="loading-log-active">→ Calibrating volume…</div>
-        </div>
+        <div class="spinner"></div>
+        <p class="text-muted">{{ mode === 'running' ? 'Building your running plan…' : 'Building your personalised routine…' }}</p>
+        <p class="text-xs text-muted mt-8">This usually takes 5–10 seconds</p>
       </div>
 
       <!-- ── ERROR ───────────────────────────────── -->
@@ -360,8 +341,7 @@ const LONGEST_RUNS: { value: LongestRun; label: string }[] = [
 // ── Running preview helper ────────────────────────────────────────────────────
 function runSetLabel(ex: GeneratedExercise): string {
   if (ex.sets.length === 0) return ''
-  const first = ex.sets[0]
-  const km = first.targetDistanceKm ?? first.targetReps
+  const km = ex.sets[0].targetReps
   if (ex.sets.length === 1) return `${km} km`
   return `${ex.sets.length} × ${km} km`
 }
@@ -403,10 +383,8 @@ function saveAll() {
         exerciseId: ex.exerciseId,
         notes:      ex.notes ?? '',
         sets:       ex.sets.map(s => ({
-          targetReps:        s.targetReps,
-          targetWeight:      s.targetWeight,
-          ...(s.targetDistanceKm  != null ? { targetDistanceKm:  s.targetDistanceKm  } : {}),
-          ...(s.targetDurationMin != null ? { targetDurationMin: s.targetDurationMin } : {}),
+          targetReps:   s.targetReps,
+          targetWeight: s.targetWeight,
         })),
       })),
       createdAt: now,
@@ -513,100 +491,21 @@ function saveAll() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 16px;
   padding: 60px 0;
   text-align: center;
 }
 
-.pulse-wrap {
-  position: relative;
-  width: 140px;
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pulse-ring {
-  position: absolute;
-  width: 140px;
-  height: 140px;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  border: 2px solid var(--accent);
-  animation: ff-pulse-ring 2.4s ease-out infinite;
-}
-.pulse-ring-1 { animation-delay: 0s; }
-.pulse-ring-2 { animation-delay: 0.6s; }
-.pulse-ring-3 { animation-delay: 1.2s; }
-
-@keyframes ff-pulse-ring {
-  0%   { transform: scale(0.6); opacity: 0.7; }
-  100% { transform: scale(1.4); opacity: 0; }
+  animation: spin 0.8s linear infinite;
 }
 
-.pulse-orb {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  box-shadow: 0 0 40px rgba(212, 255, 58, 0.45);
-  position: relative;
-  z-index: 1;
-}
-[data-theme="light"] .pulse-orb { box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-
-.loading-title {
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.loading-sub {
-  font-size: 0.8125rem;
-  max-width: 260px;
-}
-
-.loading-bar-wrap {
-  width: 240px;
-  height: 8px;
-  background: var(--surface-2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.loading-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--flame));
-  border-radius: 999px;
-  box-shadow: 0 0 8px rgba(212, 255, 58, 0.4);
-  animation: loading-sweep 3s ease-in-out infinite;
-}
-
-@keyframes loading-sweep {
-  0%   { width: 15%; }
-  50%  { width: 75%; }
-  100% { width: 85%; }
-}
-
-.loading-log {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 0.6875rem;
-  width: 240px;
-}
-
-.loading-log-done  { color: var(--text-muted); }
-.loading-log-active { color: var(--accent); }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Error ──────────────────────────────────────────────────────────────── */
 .error-card  { display: flex; flex-direction: column; gap: 6px; }

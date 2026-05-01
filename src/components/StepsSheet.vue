@@ -7,81 +7,75 @@
       <div v-if="modelValue" class="sheet">
         <div class="sheet-handle" />
         <div class="sheet-header">
-          <div class="steps-header-row">
-            <div>
-              <div class="steps-log-label">LOG</div>
-              <div class="steps-header-title">Daily steps</div>
-            </div>
-            <button class="close-x" @click="close">×</button>
+          <div class="flex items-center justify-between mb-12">
+            <h2>Log Steps</h2>
+            <button class="btn btn-ghost btn-icon" @click="close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
-
         <div class="sheet-body">
-          <!-- Big numeric display with accent border + glow -->
-          <div class="steps-display" :class="{ focused: inputFocused }">
-            <div class="steps-display-date mono">{{ displayDate }}</div>
-            <input
-              v-model.number="stepCount"
-              type="number"
-              inputmode="numeric"
-              class="steps-big-input"
-              min="0"
-              max="100000"
-              placeholder="0"
-              @focus="inputFocused = true"
-              @blur="inputFocused = false"
-            />
-            <div class="steps-display-goal mono">STEPS · GOAL 10,000</div>
-            <div class="steps-goal-bar">
-              <div class="steps-goal-fill" :style="{ width: Math.min(goalPct, 100) + '%' }" />
+          <!-- Date selector -->
+          <div class="field">
+            <label class="label">Date</label>
+            <div class="date-tabs">
+              <button
+                v-for="d in dateOptions"
+                :key="d.value"
+                class="date-tab"
+                :class="{ active: selectedDate === d.value }"
+                @click="selectDate(d.value)"
+              >
+                {{ d.label }}
+              </button>
+              <input
+                type="date"
+                class="date-custom"
+                :max="today"
+                :value="isCustomDate ? selectedDate : ''"
+                @change="selectDate(($event.target as HTMLInputElement).value)"
+              />
             </div>
           </div>
 
-          <!-- Date selector row -->
-          <div class="date-tabs">
-            <button
-              v-for="d in dateOptions"
-              :key="d.value"
-              class="date-tab"
-              :class="{ active: selectedDate === d.value }"
-              @click="selectDate(d.value)"
-            >{{ d.label }}</button>
-            <input
-              type="date"
-              class="date-custom"
-              :max="today"
-              :value="isCustomDate ? selectedDate : ''"
-              @change="selectDate(($event.target as HTMLInputElement).value)"
-            />
+          <!-- Steps input -->
+          <div class="field">
+            <label class="label">Steps</label>
+            <div class="steps-input-wrap">
+              <button class="steps-adj" @click="adjustSteps(-1000)">−1k</button>
+              <button class="steps-adj" @click="adjustSteps(-100)">−100</button>
+              <input
+                v-model.number="stepCount"
+                type="number"
+                inputmode="numeric"
+                class="steps-input"
+                min="0"
+                max="100000"
+                placeholder="0"
+              />
+              <button class="steps-adj" @click="adjustSteps(100)">+100</button>
+              <button class="steps-adj" @click="adjustSteps(1000)">+1k</button>
+            </div>
           </div>
 
-          <!-- Adjust buttons -->
-          <div class="steps-adj-row">
-            <button class="steps-adj" @click="adjustSteps(-1000)">−1k</button>
-            <button class="steps-adj" @click="adjustSteps(-100)">−100</button>
-            <button class="steps-adj steps-adj-spacer" disabled />
-            <button class="steps-adj" @click="adjustSteps(100)">+100</button>
-            <button class="steps-adj" @click="adjustSteps(1000)">+1k</button>
+          <!-- Goal ring -->
+          <div class="goal-row">
+            <div class="goal-bar">
+              <div class="goal-fill" :style="{ width: Math.min(goalPct, 100) + '%' }" />
+            </div>
+            <span class="goal-label">{{ Math.round(goalPct) }}% of 10,000 goal</span>
           </div>
 
-          <!-- Save CTA -->
-          <button class="steps-cta" @click="save" :disabled="!stepCount || stepCount < 0">
-            Save · +{{ xpPreview }} XP
+          <!-- Quick presets -->
+          <div class="presets">
+            <button v-for="p in presets" :key="p" class="preset-btn" @click="stepCount = p">
+              {{ p.toLocaleString() }}
+            </button>
+          </div>
+
+          <button class="btn btn-primary btn-full" style="margin-top: 20px" @click="save" :disabled="!stepCount || stepCount < 0">
+            Save Steps
           </button>
-
-          <!-- Recent entries -->
-          <div v-if="recentEntries.length > 0">
-            <div class="recent-label">RECENT</div>
-            <div class="recent-list">
-              <div v-for="r in recentEntries" :key="r.date" class="recent-row">
-                <div class="recent-date mono">{{ r.label }}</div>
-                <div class="recent-right">
-                  <div class="recent-steps">{{ r.steps.toLocaleString() }}</div>
-                  <span v-if="r.steps >= 10000" class="goal-chip">GOAL ✓</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </Transition>
@@ -99,51 +93,32 @@ const store = useWorkoutsStore()
 
 const today = new Date().toISOString().slice(0, 10)
 
-function formatDateStr(d: Date) {
+function formatDate(d: Date) {
   return d.toISOString().slice(0, 10)
 }
 
 function dayLabel(d: Date) {
   const t = new Date()
-  const diff = Math.round((t.setHours(0,0,0,0) - new Date(d).setHours(0,0,0,0)) / 86400000)
-  if (diff === 0) return 'TODAY'
-  if (diff === 1) return 'YESTERDAY'
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
+  const diff = Math.round((t.setHours(0,0,0,0) - d.setHours(0,0,0,0)) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-const dateOptions = computed(() =>
-  Array.from({ length: 4 }, (_, i) => {
+const dateOptions = computed(() => {
+  return Array.from({ length: 4 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    return { value: formatDateStr(d), label: dayLabel(d) }
+    return { value: formatDate(d), label: dayLabel(new Date(d)) }
   })
-)
-
-const selectedDate  = ref(today)
-const stepCount     = ref(0)
-const inputFocused  = ref(false)
-
-const isCustomDate = computed(() => !dateOptions.value.find(d => d.value === selectedDate.value))
-const goalPct      = computed(() => Math.min((stepCount.value / 10000) * 100, 100))
-const xpPreview    = computed(() => Math.min(Math.round((stepCount.value || 0) / 800), 12))
-
-const displayDate = computed(() => {
-  const d = new Date(selectedDate.value + 'T00:00:00')
-  const diff = Math.round((new Date().setHours(0,0,0,0) - d.setHours(0,0,0,0)) / 86400000)
-  if (diff === 0) return `TODAY · ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}`
-  if (diff === 1) return 'YESTERDAY'
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
 })
 
-const recentEntries = computed(() =>
-  Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - i - 1)
-    const dateStr = formatDateStr(d)
-    const steps = store.getStepsForDate(dateStr)
-    return { date: dateStr, steps, label: dayLabel(d) }
-  }).filter(e => e.steps > 0).slice(0, 3)
-)
+const selectedDate = ref(today)
+const stepCount = ref(0)
+const presets = [3000, 5000, 7500, 10000, 12500, 15000]
+
+const isCustomDate = computed(() => !dateOptions.value.find(d => d.value === selectedDate.value))
+const goalPct = computed(() => (stepCount.value / 10000) * 100)
 
 function selectDate(date: string) {
   if (!date) return
@@ -165,150 +140,50 @@ function close() {
   emit('update:modelValue', false)
 }
 
+// Reset when opened
 watch(() => props.modelValue, (open) => {
   if (open) {
     selectedDate.value = today
     stepCount.value = store.getStepsForDate(today)
-    inputFocused.value = false
   }
 })
 </script>
 
 <style scoped>
-/* ── Header ──────────────────────────────────────────────── */
-.steps-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.steps-log-label {
-  font-size: 0.625rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.12em;
-}
-
-.steps-header-title {
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-top: 2px;
-}
-
-.close-x {
-  background: none;
-  border: none;
-  font-size: 1.375rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-/* ── Big numeric display ─────────────────────────────────── */
-.steps-display {
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 16px 18px;
-  text-align: right;
-  margin-bottom: 12px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.steps-display.focused {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
-}
-
-.steps-display-date {
-  font-size: 0.625rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.12em;
-  text-align: left;
-}
-
-.steps-big-input {
-  width: 100%;
-  background: none;
-  border: none;
-  outline: none;
-  font-family: var(--font-display);
-  font-size: 3.5rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  text-align: right;
-  color: var(--text);
-  margin-top: 8px;
-  padding: 0;
-}
-.steps-big-input::placeholder { color: var(--text-muted); }
-.steps-big-input::-webkit-inner-spin-button,
-.steps-big-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-.steps-big-input[type=number] { -moz-appearance: textfield; }
-
-.steps-display-goal {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.08em;
-  margin-top: 6px;
-  text-align: left;
-}
-
-.steps-goal-bar {
-  margin-top: 10px;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.steps-goal-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-/* ── Date tabs ───────────────────────────────────────────── */
 .date-tabs {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .date-tab {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 .date-tab.active {
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .date-custom {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 8px 12px;
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
@@ -318,99 +193,98 @@ watch(() => props.modelValue, (open) => {
   cursor: pointer;
 }
 
-/* ── Adjust row ──────────────────────────────────────────── */
-.steps-adj-row {
+.steps-input-wrap {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 14px;
 }
 
 .steps-adj {
-  flex: 1;
-  padding: 8px 4px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
-  text-align: center;
+  white-space: nowrap;
   transition: all 0.15s;
+  touch-action: manipulation;
+  flex-shrink: 0;
 }
-.steps-adj:active { background: color-mix(in srgb, var(--accent) 13%, transparent); border-color: var(--accent); color: var(--accent); }
-.steps-adj-spacer { flex: 0.5; visibility: hidden; border: none; background: none; }
+.steps-adj:active {
+  background: var(--card);
+  color: var(--text);
+}
 
-/* ── Save CTA ────────────────────────────────────────────── */
-.steps-cta {
-  width: 100%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border: none;
-  border-radius: 14px;
-  padding: 14px 18px;
-  font-family: var(--font-display);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  cursor: pointer;
+.steps-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  padding: 12px 16px;
   text-align: center;
-  margin-bottom: 20px;
-  transition: opacity 0.15s;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
 }
-.steps-cta:disabled { opacity: 0.4; cursor: not-allowed; }
-.steps-cta:active:not(:disabled) { opacity: 0.9; }
+.steps-input:focus { border-color: var(--primary); }
+.steps-input::placeholder { color: var(--text-dim); }
+.steps-input::-webkit-inner-spin-button,
+.steps-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.steps-input[type=number] { -moz-appearance: textfield; }
 
-/* ── Recent log ──────────────────────────────────────────── */
-.recent-label {
-  font-size: 0.625rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.12em;
-  margin-bottom: 8px;
-}
-
-.recent-list { display: flex; flex-direction: column; gap: 6px; }
-
-.recent-row {
+.goal-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
-
-.recent-date {
-  font-size: 0.625rem;
-  font-weight: 700;
+.goal-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.goal-label {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.recent-right {
-  display: flex;
-  align-items: center;
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
-
-.recent-steps {
-  font-family: var(--font-display);
+.preset-btn {
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
   font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
 }
-
-.goal-chip {
-  font-size: 0.5rem;
-  font-weight: 800;
-  padding: 2px 5px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: 3px;
-  letter-spacing: 0.08em;
+.preset-btn:active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
 }
-
-.mono { font-family: var(--font-mono); }
 </style>

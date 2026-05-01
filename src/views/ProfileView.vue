@@ -20,7 +20,7 @@
             <div class="profile-hero-name">{{ authStore.email?.split('@')[0] || 'Guest' }}</div>
             <div class="profile-hero-email mono text-xs text-muted">{{ authStore.email || 'Not signed in' }}</div>
             <div class="profile-hero-badge">
-              ⚡ L{{ gStore.level }} {{ gStore.levelName.toUpperCase() }}
+              ⚡ L{{ gStore.level }} · {{ gStore.xp.toLocaleString() }} XP
             </div>
           </div>
         </div>
