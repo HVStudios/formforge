@@ -14,13 +14,13 @@ export const useAuthStore = defineStore('auth', () => {
   /** Call once on app start. Resolves once Supabase has determined auth state. */
   function init(): Promise<void> {
     return new Promise(resolve => {
-      supabase.auth.getSession().then(({ data }) => {
-        user.value  = data.session?.user ?? null
-        ready.value = true
-        resolve()
-      })
+      // Register the listener first so we never miss the INITIAL_SESSION event.
       supabase.auth.onAuthStateChange((_event, session) => {
         user.value = session?.user ?? null
+        if (!ready.value) {
+          ready.value = true
+          resolve()
+        }
       })
     })
   }
