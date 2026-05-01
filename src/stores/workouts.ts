@@ -212,17 +212,29 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   }
 
   function startWorkout(plan: WorkoutPlan) {
-    const exercises: LoggedExercise[] = plan.exercises.map((pe: PlanExercise) => ({
-      uid: pe.uid,
-      exerciseId: pe.exerciseId,
-      exerciseName: resolveExerciseName(pe.exerciseId),
-      notes: pe.notes,
-      sets: pe.sets.map(s => ({
-        reps: s.targetReps || null,
-        weight: s.targetWeight || null,
-        completed: false,
-      })),
-    }))
+    const exercises: LoggedExercise[] = plan.exercises.map((pe: PlanExercise) => {
+      const isRun = isRunningExercise(pe.exerciseId)
+      return {
+        uid: pe.uid,
+        exerciseId: pe.exerciseId,
+        exerciseName: resolveExerciseName(pe.exerciseId),
+        notes: pe.notes,
+        sets: pe.sets.map(s => isRun
+          ? {
+              reps: null,
+              weight: null,
+              distanceKm:  s.targetDistanceKm  ?? s.targetReps ?? null,
+              durationMin: s.targetDurationMin ?? null,
+              completed: false,
+            }
+          : {
+              reps: s.targetReps || null,
+              weight: s.targetWeight || null,
+              completed: false,
+            }
+        ),
+      }
+    })
     activeWorkout.value = {
       id: nanoid(),
       planId: plan.id,

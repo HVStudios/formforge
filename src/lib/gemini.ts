@@ -27,7 +27,12 @@ export interface RunningPreferences {
 
 export interface GeneratedExercise {
   exerciseId: string
-  sets:       { targetReps: number; targetWeight: number }[]
+  sets:       {
+    targetReps:        number
+    targetWeight:      number
+    targetDistanceKm?: number
+    targetDurationMin?: number
+  }[]
   notes:      string
 }
 
@@ -174,8 +179,8 @@ ${RUNNING_EXERCISES}
 
 Rules:
 1. Create exactly ${prefs.daysPerWeek} plans, one per running day.
-2. "targetReps" = distance in whole kilometres for that segment. "targetWeight" = 0 always.
-3. Each set object must have both targetReps and targetWeight.
+2. "targetDistanceKm" = distance in whole kilometres for that segment. "targetDurationMin" = optional target duration in whole minutes (omit if not relevant).
+3. Always include "targetReps": 0 and "targetWeight": 0 on every set (legacy fields).
 4. For interval sessions split into warmup / main set / cooldown as separate exercise entries.
    For the main interval block use multiple sets (e.g. 6 sets × 1km).
 5. For single-segment runs use exactly 1 set with the total distance.
@@ -193,7 +198,7 @@ Return valid JSON only — no markdown, no explanation:
       "exercises": [
         {
           "exerciseId": "run-easy",
-          "sets": [{"targetReps": 6, "targetWeight": 0}],
+          "sets": [{"targetDistanceKm": 6, "targetReps": 0, "targetWeight": 0}],
           "notes": "Conversational pace, keep heart rate in Zone 2"
         }
       ]

@@ -341,7 +341,8 @@ const LONGEST_RUNS: { value: LongestRun; label: string }[] = [
 // ── Running preview helper ────────────────────────────────────────────────────
 function runSetLabel(ex: GeneratedExercise): string {
   if (ex.sets.length === 0) return ''
-  const km = ex.sets[0].targetReps
+  const first = ex.sets[0]
+  const km = first.targetDistanceKm ?? first.targetReps
   if (ex.sets.length === 1) return `${km} km`
   return `${ex.sets.length} × ${km} km`
 }
@@ -383,8 +384,10 @@ function saveAll() {
         exerciseId: ex.exerciseId,
         notes:      ex.notes ?? '',
         sets:       ex.sets.map(s => ({
-          targetReps:   s.targetReps,
-          targetWeight: s.targetWeight,
+          targetReps:        s.targetReps,
+          targetWeight:      s.targetWeight,
+          ...(s.targetDistanceKm  != null ? { targetDistanceKm:  s.targetDistanceKm  } : {}),
+          ...(s.targetDurationMin != null ? { targetDurationMin: s.targetDurationMin } : {}),
         })),
       })),
       createdAt: now,

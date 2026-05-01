@@ -114,3 +114,17 @@ export function getExerciseName(id: string): string {
 export function isRunningExercise(exerciseId: string): boolean {
   return exerciseId.startsWith('run-')
 }
+
+/** Read planned distance, falling back to legacy `targetReps` for plans saved before the running fields existed. */
+export function readPlannedDistanceKm(set: { targetDistanceKm?: number; targetReps?: number }): number | null {
+  if (set.targetDistanceKm != null) return set.targetDistanceKm
+  if (set.targetReps) return set.targetReps
+  return null
+}
+
+/** Read logged distance, falling back to legacy `reps`. */
+export function readLoggedDistanceKm(set: { distanceKm?: number | null; reps?: number | null }): number | null {
+  if (set.distanceKm != null) return set.distanceKm
+  if (set.reps != null) return set.reps
+  return null
+}

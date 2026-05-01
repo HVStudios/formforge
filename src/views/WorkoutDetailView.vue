@@ -21,7 +21,13 @@
             <span class="stat-value">{{ log.exercises.length }}</span>
             <span class="stat-label">Exercises</span>
           </div>
-          <div class="summary-stat card">
+          <div v-if="isAllRunning" class="summary-stat card">
+            <span class="stat-value">
+              {{ totalDistanceKm % 1 === 0 ? totalDistanceKm : totalDistanceKm.toFixed(1) }}
+            </span>
+            <span class="stat-label">km total</span>
+          </div>
+          <div v-else class="summary-stat card">
             <span class="stat-value">{{ totalSets }}</span>
             <span class="stat-label">Sets done</span>
           </div>
@@ -56,8 +62,8 @@
             <div class="sets-table">
               <div class="sets-table-header">
                 <span>Set</span>
-                <span>Weight</span>
-                <span>Reps</span>
+                <span>{{ isRunningExercise(ex.exerciseId) ? 'Distance' : 'Weight' }}</span>
+                <span>{{ isRunningExercise(ex.exerciseId) ? 'Duration' : 'Reps' }}</span>
                 <span>Done</span>
               </div>
               <div
@@ -70,8 +76,14 @@
                 }"
               >
                 <span>{{ si + 1 }}</span>
-                <span>{{ set.weight != null ? set.weight + ' kg' : '—' }}</span>
-                <span>{{ set.reps != null ? set.reps : '—' }}</span>
+                <template v-if="isRunningExercise(ex.exerciseId)">
+                  <span>{{ readLoggedDistanceKm(set) != null ? readLoggedDistanceKm(set) + ' km' : '—' }}</span>
+                  <span>{{ set.durationMin != null ? set.durationMin + ' min' : '—' }}</span>
+                </template>
+                <template v-else>
+                  <span>{{ set.weight != null ? set.weight + ' kg' : '—' }}</span>
+                  <span>{{ set.reps != null ? set.reps : '—' }}</span>
+                </template>
                 <span>{{ set.completed ? '✓' : '✗' }}</span>
               </div>
             </div>
@@ -93,7 +105,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutsStore } from '../stores/workouts'
 import { formatDate, formatDuration, elapsedSeconds } from '../utils/format'
-import { isRunningExercise } from '../data/exercises'
+import { isRunningExercise, readLoggedDistanceKm } from '../data/exercises'
 import type { LoggedExercise, LoggedSet } from '../types'
 
 const props = defineProps<{ id: string }>()
@@ -105,6 +117,27 @@ const log = computed(() => store.getLog(props.id))
 const totalSets = computed(() =>
   log.value?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0) ?? 0
 )
+
+/** True when every exercise in the log is a run-* exercise. */
+const isAllRunning = computed(() =>
+  !!log.value && log.value.exercises.length > 0 &&
+  log.value.exercises.every(ex => isRunningExercise(ex.exerciseId))
+)
+
+/** Total distance in km across completed running sets (works with legacy `reps` data). */
+const totalDistanceKm = computed(() => {
+  if (!log.value) return 0
+  let total = 0
+  for (const ex of log.value.exercises) {
+    if (!isRunningExercise(ex.exerciseId)) continue
+    for (const s of ex.sets) {
+      if (!s.completed) continue
+      const km = readLoggedDistanceKm(s)
+      if (km != null) total += km
+    }
+  }
+  return total
+})
 
 // ── Personal Records ──────────────────────────────────────────────────────────
 function isSetPR(exerciseId: string, set: LoggedSet): boolean {

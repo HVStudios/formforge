@@ -89,23 +89,44 @@
           <Transition name="expand">
             <div v-if="expandedMap[exIdx]" class="sets-section">
               <div class="divider" />
+
+              <!-- Running cue from the plan (e.g. "Conversational pace, Zone 2") -->
+              <div v-if="isRunningExercise(ex.exerciseId) && ex.notes" class="run-cue">
+                <span class="run-cue-icon">🏃</span>
+                <span class="run-cue-text">{{ ex.notes }}</span>
+              </div>
+
               <div class="sets-header">
                 <span class="set-col-hdr">Set</span>
-                <span class="set-col-hdr">kg</span>
-                <span class="set-col-hdr">Reps</span>
+                <span class="set-col-hdr">{{ isRunningExercise(ex.exerciseId) ? 'Km' : 'kg' }}</span>
+                <span class="set-col-hdr">{{ isRunningExercise(ex.exerciseId) ? 'Min' : 'Reps' }}</span>
                 <span style="width:38px" />
                 <span style="width:26px" />
               </div>
-              <SetRow
-                v-for="(set, si) in ex.sets"
-                :key="si"
-                :ref="(el) => setRowRef(el, exIdx, si)"
-                :set="set"
-                :number="si + 1"
-                :canDelete="ex.sets.length > 1"
-                @update:set="updateSet(exIdx, si, $event)"
-                @delete="removeSet(exIdx, si)"
-              />
+              <template v-if="isRunningExercise(ex.exerciseId)">
+                <RunSetRow
+                  v-for="(set, si) in ex.sets"
+                  :key="si"
+                  :ref="(el) => setRowRef(el, exIdx, si)"
+                  :set="set"
+                  :number="si + 1"
+                  :canDelete="ex.sets.length > 1"
+                  @update:set="updateSet(exIdx, si, $event, true)"
+                  @delete="removeSet(exIdx, si)"
+                />
+              </template>
+              <template v-else>
+                <SetRow
+                  v-for="(set, si) in ex.sets"
+                  :key="si"
+                  :ref="(el) => setRowRef(el, exIdx, si)"
+                  :set="set"
+                  :number="si + 1"
+                  :canDelete="ex.sets.length > 1"
+                  @update:set="updateSet(exIdx, si, $event)"
+                  @delete="removeSet(exIdx, si)"
+                />
+              </template>
               <button class="btn btn-ghost btn-sm add-set-btn" @click="addSet(exIdx)">
                 {{ canRepeat(ex) ? '＋ Repeat last set' : '＋ Add set' }}
               </button>
@@ -161,7 +182,9 @@ import { formatDuration } from '../utils/format'
 import { nanoid } from '../utils/nanoid'
 import type { WorkoutLog, LoggedExercise, LoggedSet, Exercise } from '../types'
 import SetRow from '../components/SetRow.vue'
+import RunSetRow from '../components/RunSetRow.vue'
 import ExerciseSelector from '../components/ExerciseSelector.vue'
+import { isRunningExercise } from '../data/exercises'
 
 const store = useWorkoutsStore()
 const router = useRouter()
@@ -278,15 +301,21 @@ function completedCount(ex: LoggedExercise) {
 
 function canRepeat(ex: LoggedExercise): boolean {
   const last = ex.sets.at(-1)
-  return !!last && (last.weight !== null || last.reps !== null)
+  if (!last) return false
+  if (isRunningExercise(ex.exerciseId)) {
+    return last.distanceKm != null || last.durationMin != null || last.reps != null
+  }
+  return last.weight !== null || last.reps !== null
 }
 
 // Mutations
-function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet) {
+function updateSet(exIdx: number, setIdx: number, newSet: LoggedSet, isRun = false) {
   const wasCompleted = workout.exercises[exIdx].sets[setIdx].completed
   workout.exercises[exIdx].sets[setIdx] = newSet
   if (newSet.completed && !wasCompleted) {
-    if (restEnabled.value) startRest()
+    // Don't auto-start the rest timer on running set completion — a long run
+    // doesn't need it. The user can still tap a preset manually.
+    if (restEnabled.value && !isRun) startRest()
     focusNextSet(exIdx, setIdx)
   }
 }
@@ -298,11 +327,21 @@ function removeSet(exIdx: number, setIdx: number) {
 function addSet(exIdx: number) {
   const ex = workout.exercises[exIdx]
   const last = ex.sets.at(-1)
-  ex.sets.push({
-    reps: last?.reps ?? null,
-    weight: last?.weight ?? null,
-    completed: false,
-  })
+  if (isRunningExercise(ex.exerciseId)) {
+    ex.sets.push({
+      reps: null,
+      weight: null,
+      distanceKm:  last?.distanceKm  ?? last?.reps ?? null,
+      durationMin: last?.durationMin ?? null,
+      completed: false,
+    })
+  } else {
+    ex.sets.push({
+      reps:   last?.reps   ?? null,
+      weight: last?.weight ?? null,
+      completed: false,
+    })
+  }
 }
 
 // ── SetRow refs for auto-focus ────────────────────────────────────────────────
@@ -336,12 +375,16 @@ function focusNextSet(exIdx: number, setIdx: number) {
 
 const showSelector = ref(false)
 function addExercise(ex: Exercise) {
+  const isRun = isRunningExercise(ex.id)
   const logged: LoggedExercise = {
     uid: nanoid(),
     exerciseId: ex.id,
     exerciseName: ex.name,
     notes: '',
-    sets: [{ reps: null, weight: null, completed: false }],
+    sets: [isRun
+      ? { reps: null, weight: null, distanceKm: null, durationMin: null, completed: false }
+      : { reps: null, weight: null, completed: false }
+    ],
   }
   workout.exercises.push(logged)
   const idx = workout.exercises.length - 1
@@ -527,6 +570,24 @@ function discard() {
   padding: 0 16px 14px;
 }
 
+/* Coaching cue card shown above the sets for running exercises */
+.run-cue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.run-cue-icon { font-size: 0.9375rem; line-height: 1.3; flex-shrink: 0; }
+.run-cue-text {
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
 .sets-header {
   display: flex;
   gap: 10px;
@@ -598,11 +659,23 @@ function discard() {
   border: 1.5px solid var(--primary);
   border-radius: var(--radius);
   padding: 10px 14px;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 8px;
   z-index: 49;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* On narrow phones the 4 presets won't fit alongside the countdown — let
+   them reflow to a second row spanning the full banner width. */
+@media (max-width: 420px) {
+  .rest-presets {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+  .rest-preset { flex: 1; text-align: center; padding: 6px 4px; }
 }
 
 .rest-info {
@@ -633,8 +706,8 @@ function discard() {
 .rest-presets {
   display: flex;
   gap: 5px;
-  flex: 1;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .rest-preset {
