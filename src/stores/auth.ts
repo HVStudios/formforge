@@ -1,62 +1,57 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  signInAnonymously,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  linkWithCredential,
-  EmailAuthProvider,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  type User,
-} from 'firebase/auth'
-import { auth } from '../firebase'
+import type { User } from '@supabase/supabase-js'
+import { supabase } from '../supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const user  = ref<User | null>(null)
   const ready = ref(false)
 
-  const isAnonymous = computed(() => user.value?.isAnonymous ?? false)
+  const isAnonymous = computed(() => user.value?.is_anonymous ?? false)
   const isSignedIn  = computed(() => !!user.value)
   const email       = computed(() => user.value?.email ?? null)
 
-  /** Call once on app start. Resolves when Firebase has determined auth state. */
+  /** Call once on app start. Resolves once Supabase has determined auth state. */
   function init(): Promise<void> {
     return new Promise(resolve => {
-      onAuthStateChanged(auth, u => {
-        user.value = u
-        if (!ready.value) {
-          ready.value = true
-          resolve()
-        }
+      supabase.auth.getSession().then(({ data }) => {
+        user.value  = data.session?.user ?? null
+        ready.value = true
+        resolve()
+      })
+      supabase.auth.onAuthStateChange((_event, session) => {
+        user.value = session?.user ?? null
       })
     })
   }
 
   async function continueAnonymously(): Promise<void> {
-    const cred = await signInAnonymously(auth)
-    user.value = cred.user
+    const { data, error } = await supabase.auth.signInAnonymously()
+    if (error) throw error
+    user.value = data.user
   }
 
   async function signUp(emailVal: string, password: string): Promise<void> {
-    if (user.value?.isAnonymous) {
-      // Upgrade anonymous account → keeps same uid so Firestore data is preserved
-      const credential = EmailAuthProvider.credential(emailVal, password)
-      const result = await linkWithCredential(user.value, credential)
-      user.value = result.user
+    if (user.value?.is_anonymous) {
+      // Upgrade anonymous account → keeps same uid so DB data is preserved
+      const { data, error } = await supabase.auth.updateUser({ email: emailVal, password })
+      if (error) throw error
+      user.value = data.user
     } else {
-      const result = await createUserWithEmailAndPassword(auth, emailVal, password)
-      user.value = result.user
+      const { data, error } = await supabase.auth.signUp({ email: emailVal, password })
+      if (error) throw error
+      user.value = data.user
     }
   }
 
   async function signIn(emailVal: string, password: string): Promise<void> {
-    const result = await signInWithEmailAndPassword(auth, emailVal, password)
-    user.value = result.user
+    const { data, error } = await supabase.auth.signInWithPassword({ email: emailVal, password })
+    if (error) throw error
+    user.value = data.user
   }
 
   async function signOut(): Promise<void> {
-    await firebaseSignOut(auth)
+    await supabase.auth.signOut()
     user.value = null
   }
 

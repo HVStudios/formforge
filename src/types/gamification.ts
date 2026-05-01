@@ -39,7 +39,7 @@ export interface MissionDef {
   getProgress: (ctx: EvalContext) => number
 }
 
-// ─── Firestore document ───────────────────────────────────────────────────────
+// ─── Persisted document ───────────────────────────────────────────────────────
 export interface GamificationDoc {
   xp: number
   achievements: string[]

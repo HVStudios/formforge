@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { db } from '../firebase'
+import { supabase } from '../supabase'
 import { useWorkoutsStore } from './workouts'
 import type { GamificationDoc, EvalContext } from '../types/gamification'
 import type { AchievementDef } from '../types/gamification'
@@ -23,7 +22,7 @@ export const useGamificationStore = defineStore('gamification', () => {
   const achievements   = ref<string[]>([])
   const weeklyMissions = ref<Record<string, string[]>>({})
 
-  /** Set to true once Firestore data has been loaded — guards evaluate() */
+  /** Set to true once Supabase data has been loaded — guards evaluate() */
   const _loaded = ref(false)
   let _uid: string | null = null
 
@@ -68,16 +67,22 @@ export const useGamificationStore = defineStore('gamification', () => {
     }
   }
 
-  // ─── Firestore ─────────────────────────────────────────────────────────────
-  async function loadFromFirestore(uid: string) {
+  // ─── Supabase ──────────────────────────────────────────────────────────────
+  async function loadFromSupabase(uid: string) {
     _uid = uid
     try {
-      const snap = await getDoc(doc(db, 'users', uid, 'meta', 'gamification'))
-      if (snap.exists()) {
-        const data = snap.data() as GamificationDoc
-        xp.value             = data.xp             ?? 0
-        achievements.value   = data.achievements   ?? []
-        weeklyMissions.value = data.weeklyMissions ?? {}
+      const { data, error } = await supabase
+        .from('user_meta')
+        .select('data')
+        .eq('user_id', uid)
+        .eq('key', 'gamification')
+        .maybeSingle()
+      if (error) throw error
+      if (data) {
+        const doc = data.data as GamificationDoc
+        xp.value             = doc.xp             ?? 0
+        achievements.value   = doc.achievements   ?? []
+        weeklyMissions.value = doc.weeklyMissions ?? {}
       }
     } catch (e) {
       _reportSyncError(e)
@@ -85,24 +90,27 @@ export const useGamificationStore = defineStore('gamification', () => {
     _loaded.value = true
   }
 
-  function _saveToFirestore() {
+  function _saveToSupabase() {
     if (!_uid) return
     // Trim old weekly mission data (keep only current + previous 2 weeks)
     const currentKey = getWeekKey()
     const trimmed = Object.fromEntries(
       Object.entries(weeklyMissions.value).filter(([k]) => k >= getPrevWeekKey(currentKey, 2))
-    )
+    ) as Record<string, string[]>
     weeklyMissions.value = trimmed
 
-    setDoc(
-      doc(db, 'users', _uid, 'meta', 'gamification'),
-      {
-        xp: xp.value,
-        achievements: achievements.value,
-        weeklyMissions: trimmed,
-      } satisfies GamificationDoc,
-      { merge: true },
-    ).catch(_reportSyncError)
+    const payload: GamificationDoc = {
+      xp: xp.value,
+      achievements: achievements.value,
+      weeklyMissions: trimmed,
+    }
+
+    void (async () => {
+      const { error } = await supabase
+        .from('user_meta')
+        .upsert({ user_id: _uid, key: 'gamification', data: payload })
+      if (error) _reportSyncError(error)
+    })()
   }
 
   function getPrevWeekKey(key: string, weeksBack: number): string {
@@ -197,7 +205,7 @@ export const useGamificationStore = defineStore('gamification', () => {
       }
     }
 
-    if (changed) _saveToFirestore()
+    if (changed) _saveToSupabase()
   }
 
   // ─── Mission progress helpers (for UI) ────────────────────────────────────
@@ -219,7 +227,7 @@ export const useGamificationStore = defineStore('gamification', () => {
     // Computed
     level, progress, xpThisLevel, xpNextLevel, xpToNext,
     // Actions
-    loadFromFirestore, clearData, evaluate, dismissToast,
+    loadFromSupabase, clearData, evaluate, dismissToast,
     getMissionProgress, isMissionCompleted,
   }
 })

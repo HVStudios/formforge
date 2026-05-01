@@ -1,14 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  setDoc,
-  deleteDoc,
-} from 'firebase/firestore'
-import { db } from '../firebase'
+import { supabase } from '../supabase'
 import { nanoid } from '../utils/nanoid'
 import { getExerciseName, isRunningExercise } from '../data/exercises'
 import type { WorkoutPlan, WorkoutLog, PlanExercise, LoggedExercise, WeightEntry, StepEntry, Exercise, NutritionProfile } from '../types'
@@ -52,69 +44,81 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   function saveCustomExercisesLocal()  { localStorage.setItem('ff_custom_exercises', JSON.stringify(customExercises.value)) }
   function saveNutritionLocal()        { localStorage.setItem('ff_nutrition',        JSON.stringify(nutritionProfile.value)) }
 
-  // ─── Firestore helpers (fire-and-forget) ─────────
-  function fsWritePlan(plan: WorkoutPlan) {
+  // ─── Supabase helpers (fire-and-forget) ──────────
+  function sbUpsertPlan(plan: WorkoutPlan) {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'plans', plan.id), plan).catch(_reportSyncError)
+    supabase.from('plans')
+      .upsert({ id: plan.id, user_id: _uid, data: plan })
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
-  function fsDeletePlan(planId: string) {
+  function sbDeletePlan(planId: string) {
     if (!_uid) return
-    deleteDoc(doc(db, 'users', _uid, 'plans', planId)).catch(_reportSyncError)
+    supabase.from('plans')
+      .delete()
+      .eq('id', planId)
+      .eq('user_id', _uid)
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
-  function fsWriteLog(log: WorkoutLog) {
+  function sbUpsertLog(log: WorkoutLog) {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'logs', log.id), log).catch(_reportSyncError)
+    supabase.from('workout_logs')
+      .upsert({ id: log.id, user_id: _uid, data: log })
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
-  function fsDeleteLog(logId: string) {
+  function sbDeleteLog(logId: string) {
     if (!_uid) return
-    deleteDoc(doc(db, 'users', _uid, 'logs', logId)).catch(_reportSyncError)
+    supabase.from('workout_logs')
+      .delete()
+      .eq('id', logId)
+      .eq('user_id', _uid)
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
-  function fsWriteActive(workout: WorkoutLog | null) {
+  function sbUpsertMeta(key: string, data: unknown) {
     if (!_uid) return
-    if (workout) {
-      setDoc(doc(db, 'users', _uid, 'meta', 'active'), workout).catch(_reportSyncError)
-    } else {
-      deleteDoc(doc(db, 'users', _uid, 'meta', 'active')).catch(_reportSyncError)
-    }
+    supabase.from('user_meta')
+      .upsert({ user_id: _uid, key, data })
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
-  function fsWriteBw() {
+  function sbDeleteMeta(key: string) {
     if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'meta', 'bodyweight'), { entries: bodyWeightLog.value }).catch(_reportSyncError)
-  }
-  function fsWriteSteps() {
-    if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'meta', 'steps'), { entries: stepEntries.value }).catch(_reportSyncError)
-  }
-  function fsWriteCustomExercises() {
-    if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'meta', 'customExercises'), { exercises: customExercises.value }).catch(_reportSyncError)
-  }
-  function fsWriteNutrition() {
-    if (!_uid) return
-    setDoc(doc(db, 'users', _uid, 'meta', 'nutrition'), { profile: nutritionProfile.value }).catch(_reportSyncError)
+    supabase.from('user_meta')
+      .delete()
+      .eq('user_id', _uid)
+      .eq('key', key)
+      .then(({ error }) => { if (error) _reportSyncError(error) })
   }
 
-  // ─── Firestore load (called on auth) ─────────────
-  async function loadFromFirestore(uid: string) {
+  // ─── Supabase load (called on auth) ──────────────
+  async function loadFromSupabase(uid: string) {
     _uid = uid
-    const [plansSnap, logsSnap, activeSnap, bwSnap, stepsSnap, customSnap, nutritionSnap] = await Promise.all([
-      getDocs(collection(db, 'users', uid, 'plans')),
-      getDocs(collection(db, 'users', uid, 'logs')),
-      getDoc(doc(db, 'users', uid, 'meta', 'active')),
-      getDoc(doc(db, 'users', uid, 'meta', 'bodyweight')),
-      getDoc(doc(db, 'users', uid, 'meta', 'steps')),
-      getDoc(doc(db, 'users', uid, 'meta', 'customExercises')),
-      getDoc(doc(db, 'users', uid, 'meta', 'nutrition')),
+    const [
+      { data: plansData },
+      { data: logsData },
+      { data: activeMeta },
+      { data: bwMeta },
+      { data: stepsMeta },
+      { data: customMeta },
+      { data: nutritionMeta },
+    ] = await Promise.all([
+      supabase.from('plans').select('data').eq('user_id', uid),
+      supabase.from('workout_logs').select('data').eq('user_id', uid),
+      supabase.from('user_meta').select('data').eq('user_id', uid).eq('key', 'active').maybeSingle(),
+      supabase.from('user_meta').select('data').eq('user_id', uid).eq('key', 'bodyweight').maybeSingle(),
+      supabase.from('user_meta').select('data').eq('user_id', uid).eq('key', 'steps').maybeSingle(),
+      supabase.from('user_meta').select('data').eq('user_id', uid).eq('key', 'customExercises').maybeSingle(),
+      supabase.from('user_meta').select('data').eq('user_id', uid).eq('key', 'nutrition').maybeSingle(),
     ])
-    plans.value = plansSnap.docs.map(d => d.data() as WorkoutPlan)
-    logs.value  = logsSnap.docs
-      .map(d => d.data() as WorkoutLog)
+
+    plans.value = (plansData ?? []).map(r => r.data as WorkoutPlan)
+    logs.value  = (logsData ?? [])
+      .map(r => r.data as WorkoutLog)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-    activeWorkout.value    = activeSnap.exists()    ? (activeSnap.data() as WorkoutLog) : null
-    bodyWeightLog.value    = bwSnap.exists()        ? ((bwSnap.data() as { entries: WeightEntry[] }).entries ?? []) : []
-    stepEntries.value      = stepsSnap.exists()     ? ((stepsSnap.data() as { entries: StepEntry[] }).entries ?? []) : []
-    customExercises.value  = customSnap.exists()    ? ((customSnap.data() as { exercises: Exercise[] }).exercises ?? []) : []
-    nutritionProfile.value = nutritionSnap.exists() ? ((nutritionSnap.data() as { profile: NutritionProfile }).profile ?? null) : null
+    activeWorkout.value    = activeMeta    ? (activeMeta.data as WorkoutLog) : null
+    bodyWeightLog.value    = bwMeta        ? ((bwMeta.data as { entries: WeightEntry[] }).entries ?? []) : []
+    stepEntries.value      = stepsMeta     ? ((stepsMeta.data as { entries: StepEntry[] }).entries ?? []) : []
+    customExercises.value  = customMeta    ? ((customMeta.data as { exercises: Exercise[] }).exercises ?? []) : []
+    nutritionProfile.value = nutritionMeta ? ((nutritionMeta.data as { profile: NutritionProfile }).profile ?? null) : null
+
     savePlansLocal()
     saveLogsLocal()
     saveActiveLocal()
@@ -151,13 +155,13 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       plans.value.push(plan)
     }
     savePlansLocal()
-    fsWritePlan(plan)
+    sbUpsertPlan(plan)
   }
 
   function deletePlan(id: string) {
     plans.value = plans.value.filter(p => p.id !== id)
     savePlansLocal()
-    fsDeletePlan(id)
+    sbDeletePlan(id)
   }
 
   function getPlan(id: string): WorkoutPlan | undefined {
@@ -192,19 +196,19 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       customExercises.value.push(ex)
     }
     saveCustomExercisesLocal()
-    fsWriteCustomExercises()
+    sbUpsertMeta('customExercises', { exercises: customExercises.value })
   }
 
   function saveNutrition(profile: NutritionProfile) {
     nutritionProfile.value = profile
     saveNutritionLocal()
-    fsWriteNutrition()
+    sbUpsertMeta('nutrition', { profile })
   }
 
   function deleteCustomExercise(id: string) {
     customExercises.value = customExercises.value.filter(e => e.id !== id)
     saveCustomExercisesLocal()
-    fsWriteCustomExercises()
+    sbUpsertMeta('customExercises', { exercises: customExercises.value })
   }
 
   function startWorkout(plan: WorkoutPlan) {
@@ -229,7 +233,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       notes: '',
     }
     saveActiveLocal()
-    fsWriteActive(activeWorkout.value)
+    sbUpsertMeta('active', activeWorkout.value)
   }
 
   function startEmptyWorkout(name = 'Free Workout') {
@@ -243,13 +247,13 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       notes: '',
     }
     saveActiveLocal()
-    fsWriteActive(activeWorkout.value)
+    sbUpsertMeta('active', activeWorkout.value)
   }
 
   function updateActiveWorkout(workout: WorkoutLog) {
     activeWorkout.value = workout
     saveActiveLocal()
-    fsWriteActive(workout)
+    sbUpsertMeta('active', workout)
   }
 
   function finishWorkout() {
@@ -258,8 +262,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     const completed = { ...activeWorkout.value }
     logs.value.unshift(completed)
     saveLogsLocal()
-    fsWriteLog(completed)
-    fsWriteActive(null)
+    sbUpsertLog(completed)
+    sbDeleteMeta('active')
     activeWorkout.value = null
     saveActiveLocal()
   }
@@ -267,14 +271,14 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   function discardWorkout() {
     activeWorkout.value = null
     saveActiveLocal()
-    fsWriteActive(null)
+    sbDeleteMeta('active')
   }
 
   // ─── History ────────────────────────────────────
   function deleteLog(id: string) {
     logs.value = logs.value.filter(l => l.id !== id)
     saveLogsLocal()
-    fsDeleteLog(id)
+    sbDeleteLog(id)
   }
 
   function getLog(id: string): WorkoutLog | undefined {
@@ -328,7 +332,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       stepEntries.value.sort((a, b) => b.date.localeCompare(a.date))
     }
     saveStepsLocal()
-    fsWriteSteps()
+    sbUpsertMeta('steps', { entries: stepEntries.value })
   }
 
   function getStepsForDate(date: string): number {
@@ -351,13 +355,13 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       bodyWeightLog.value.sort((a, b) => a.date.localeCompare(b.date))
     }
     saveBwLocal()
-    fsWriteBw()
+    sbUpsertMeta('bodyweight', { entries: bodyWeightLog.value })
   }
 
   function deleteWeightEntry(date: string) {
     bodyWeightLog.value = bodyWeightLog.value.filter(e => e.date !== date)
     saveBwLocal()
-    fsWriteBw()
+    sbUpsertMeta('bodyweight', { entries: bodyWeightLog.value })
   }
 
   const latestWeight = computed(() => bodyWeightLog.value[bodyWeightLog.value.length - 1] ?? null)
@@ -388,7 +392,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     logs,
     activeWorkout,
     syncError,
-    loadFromFirestore,
+    loadFromSupabase,
     clearData,
     savePlan,
     deletePlan,
