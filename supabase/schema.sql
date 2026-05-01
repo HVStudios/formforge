@@ -3,7 +3,7 @@
 
 -- ─── plans ───────────────────────────────────────────────────────────────────
 create table if not exists plans (
-  id          uuid        primary key default gen_random_uuid(),
+  id          text        primary key,
   user_id     uuid        not null references auth.users(id) on delete cascade,
   data        jsonb       not null default '{}',
   updated_at  timestamptz not null default now()
@@ -18,7 +18,7 @@ create policy "plans: own rows only"
 
 -- ─── workout_logs ─────────────────────────────────────────────────────────────
 create table if not exists workout_logs (
-  id          uuid        primary key default gen_random_uuid(),
+  id          text        primary key,
   user_id     uuid        not null references auth.users(id) on delete cascade,
   data        jsonb       not null default '{}',
   updated_at  timestamptz not null default now()
